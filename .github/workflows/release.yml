@@ -20,12 +20,19 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint
+      - run: npm test
       - name: Build installer and portable
-        run: npx electron-builder --win nsis portable --x64 --publish never
+        # L'indirizzo della repo serve agli aggiornamenti automatici: viene inserito qui, non nei sorgenti
+        run: >
+          npx electron-builder --win nsis portable --x64 --publish never
+          -c.extraMetadata.trantorRepo=${{ github.repository }}
+          -c.publish.provider=github
+          -c.publish.owner=${{ github.repository_owner }}
+          -c.publish.repo=${{ github.event.repository.name }}
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
       - name: Upload to the release
         shell: bash
-        run: gh release upload "${{ github.event.release.tag_name }}" dist/*.exe --clobber
+        run: gh release upload "${{ github.event.release.tag_name }}" dist/*.exe dist/*.blockmap dist/latest.yml --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

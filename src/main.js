@@ -1,7 +1,7 @@
 // Trantor — processo principale Electron
 // Gestisce finestra, pseudo-terminali (ConPTY via node-pty), filesystem e configurazione.
 
-const { app, BrowserWindow, ipcMain, shell, clipboard } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, clipboard, webContents } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -285,13 +285,21 @@ function buildSpawn(profile, cwd, enhance) {
 // ---------------------------------------------------------------------------
 // Finestra
 // ---------------------------------------------------------------------------
-function createWindow() {
+const windows = new Set(); // tutte le finestre; `win` è la principale (sessione, dimensioni, aggiornamenti)
+
+// opts.adopt: pannello staccato da un'altra finestra { id, profile, cwd, serialized, width, height, x, y }
+function createWindow(opts = {}) {
   const cfg = loadConfig();
-  win = new BrowserWindow({
-    width: cfg.bounds.width,
-    height: cfg.bounds.height,
-    x: cfg.bounds.x,
-    y: cfg.bounds.y,
+  const adopt = opts.adopt || null;
+  const secondary = !!adopt;
+  const bounds = secondary
+    ? { width: Math.max(640, adopt.width || 900), height: Math.max(400, adopt.height || 600), x: adopt.x, y: adopt.y }
+    : cfg.bounds;
+  const w = new BrowserWindow({
+    width: bounds.width,
+    height: bounds.height,
+    x: bounds.x,
+    y: bounds.y,
     minWidth: 640,
     minHeight: 400,
     frame: false,
@@ -305,32 +313,42 @@ function createWindow() {
       nodeIntegration: false
     }
   });
-  if (cfg.maximized) win.maximize();
-  win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
-  win.once('ready-to-show', () => win.show());
+  w.trantor = { secondary, adopt };
+  windows.add(w);
+  if (!secondary || !win) win = win || w;
+  if (!secondary && cfg.maximized) w.maximize();
+  w.loadFile(path.join(__dirname, 'renderer', 'index.html'));
+  w.once('ready-to-show', () => w.show());
   // I link non aprono finestre Electron ma il browser predefinito
-  win.webContents.setWindowOpenHandler(({ url }) => {
+  w.webContents.setWindowOpenHandler(({ url }) => {
     if (/^https?:\/\//i.test(url)) shell.openExternal(url);
     return { action: 'deny' };
   });
-  win.webContents.on('will-navigate', (e) => e.preventDefault());
+  w.webContents.on('will-navigate', (e) => e.preventDefault());
 
-  const sendState = () => win && win.webContents.send('win:state', { maximized: win.isMaximized() });
-  win.on('maximize', sendState);
-  win.on('unmaximize', sendState);
+  const sendState = () => !w.isDestroyed() && w.webContents.send('win:state', { maximized: w.isMaximized() });
+  w.on('maximize', sendState);
+  w.on('unmaximize', sendState);
 
-  win.on('close', () => {
+  w.on('close', () => {
+    if (w !== win) return;
     const c = loadConfig();
-    c.maximized = win.isMaximized();
-    if (!win.isMaximized() && !win.isMinimized()) c.bounds = win.getBounds();
+    c.maximized = w.isMaximized();
+    if (!w.isMaximized() && !w.isMinimized()) c.bounds = w.getBounds();
     saveConfig(c);
   });
-  win.on('closed', () => {
-    for (const { proc } of ptys.values()) { try { proc.kill(); } catch {} }
-    ptys.clear();
-    win = null;
+  const wcId = w.webContents.id;
+  w.on('closed', () => {
+    for (const [id, p] of ptys) {
+      if (p.ownerId === wcId) { try { p.proc.kill(); } catch {} ptys.delete(id); }
+    }
+    windows.delete(w);
+    if (win === w) win = [...windows][0] || null;
   });
+  return w;
 }
+
+const winOf = (e) => BrowserWindow.fromWebContents(e.sender);
 
 // Una sola istanza: un secondo avvio apre una nuova scheda nella finestra esistente
 if (!app.requestSingleInstanceLock()) {
@@ -351,9 +369,9 @@ app.on('window-all-closed', () => app.quit());
 // ---------------------------------------------------------------------------
 // IPC — finestra
 // ---------------------------------------------------------------------------
-ipcMain.on('win:minimize', () => win && win.minimize());
-ipcMain.on('win:toggleMaximize', () => win && (win.isMaximized() ? win.unmaximize() : win.maximize()));
-ipcMain.on('win:close', () => win && win.close());
+ipcMain.on('win:minimize', (e) => { const w = winOf(e); if (w) w.minimize(); });
+ipcMain.on('win:toggleMaximize', (e) => { const w = winOf(e); if (w) { if (w.isMaximized()) w.unmaximize(); else w.maximize(); } });
+ipcMain.on('win:close', (e) => { const w = winOf(e); if (w) w.close(); });
 
 // ---------------------------------------------------------------------------
 // IPC — configurazione
@@ -364,7 +382,8 @@ ipcMain.handle('config:save', (_e, partial) => {
   saveConfig(cfg);
   return true;
 });
-ipcMain.handle('app:info', () => ({
+ipcMain.handle('app:info', (e) => ({
+  secondary: !!(winOf(e) && winOf(e).trantor && winOf(e).trantor.secondary),
   platform: process.platform,
   home: os.homedir(),
   sep: path.sep,
@@ -376,7 +395,14 @@ ipcMain.handle('app:info', () => ({
 // ---------------------------------------------------------------------------
 // IPC — pseudo-terminali
 // ---------------------------------------------------------------------------
-ipcMain.handle('pty:spawn', (_e, { id, profile, cwd, cols, rows, enhance }) => {
+// Ogni pty appartiene a una finestra; durante il passaggio a un'altra finestra i dati vanno in coda
+function ptySend(entry, channel, ...args) {
+  if (entry.queue) { entry.queue.push([channel, args]); return; }
+  const wc = webContents.fromId(entry.ownerId);
+  if (wc && !wc.isDestroyed()) wc.send(channel, ...args);
+}
+
+ipcMain.handle('pty:spawn', (e, { id, profile, cwd, cols, rows, enhance }) => {
   let startDir = cwd;
   try { if (!startDir || !fs.statSync(startDir).isDirectory()) startDir = os.homedir(); } catch { startDir = os.homedir(); }
   const { file, args, env } = buildSpawn(profile, startDir, enhance !== false);
@@ -388,13 +414,31 @@ ipcMain.handle('pty:spawn', (_e, { id, profile, cwd, cols, rows, enhance }) => {
     env,
     useConpty: true
   });
-  ptys.set(id, { proc, kind: profile.kind });
-  proc.onData((data) => win && !win.isDestroyed() && win.webContents.send('pty:data', id, data));
+  const entry = { proc, kind: profile.kind, ownerId: e.sender.id, queue: null };
+  ptys.set(id, entry);
+  proc.onData((data) => ptySend(entry, 'pty:data', id, data));
   proc.onExit(({ exitCode }) => {
     ptys.delete(id);
-    win && !win.isDestroyed() && win.webContents.send('pty:exit', id, exitCode);
+    ptySend(entry, 'pty:exit', id, exitCode);
   });
   return { pid: proc.pid, cwd: startDir };
+});
+
+// Staccare un pannello in una nuova finestra senza interrompere la shell
+ipcMain.handle('pane:detach', (_e, payload) => {
+  const entry = ptys.get(payload.id);
+  if (!entry) return false;
+  entry.queue = [];
+  const w = createWindow({ adopt: payload });
+  entry.ownerId = w.webContents.id;
+  return true;
+});
+ipcMain.handle('pane:adoptInfo', (e) => { const w = winOf(e); return (w && w.trantor && w.trantor.adopt) || null; });
+ipcMain.on('pane:adopted', (e, id) => {
+  const entry = ptys.get(id);
+  if (!entry || entry.ownerId !== e.sender.id || !entry.queue) return;
+  const q = entry.queue; entry.queue = null;
+  for (const [ch, args] of q) e.sender.send(ch, ...args);
 });
 
 ipcMain.on('pty:write', (_e, id, data) => { const p = ptys.get(id); if (p) p.proc.write(data); });
@@ -406,6 +450,82 @@ ipcMain.on('pty:kill', (_e, id) => {
   const p = ptys.get(id);
   if (p) { try { p.proc.kill(); } catch {} ptys.delete(id); }
 });
+
+// ---------------------------------------------------------------------------
+// IPC — dispositivi in rete
+// ---------------------------------------------------------------------------
+const netscan = require('./netscan');
+ipcMain.handle('net:interfaces', () => netscan.interfaces());
+ipcMain.handle('net:scan', async (e, range) => {
+  const wc = e.sender;
+  const send = (ch, data) => { if (!wc.isDestroyed()) wc.send(ch, data); };
+  try {
+    const r = await netscan.scan(range, { onProgress: (p) => send('net:progress', p), onDevice: (d) => send('net:device', d) });
+    return { ok: true, cancelled: r.cancelled, count: r.devices.length };
+  } catch (err) { return { ok: false, error: err.message }; }
+});
+ipcMain.handle('net:cancel', () => netscan.cancel());
+ipcMain.handle('net:modbus', (_e, opts) => netscan.modbusRead(opts));
+ipcMain.handle('net:rdp', (_e, ip) => {
+  if (!isWin || !/^(\d{1,3}\.){3}\d{1,3}$/.test(ip)) return false;
+  require('child_process').spawn('mstsc', [`/v:${ip}`], { detached: true, stdio: 'ignore' }).unref();
+  return true;
+});
+
+// ---------------------------------------------------------------------------
+// Aggiornamenti automatici (electron-updater, release di GitHub)
+// L'indirizzo della repo non è scritto nei sorgenti: lo inserisce GitHub Actions
+// in fase di compilazione (package.json → trantorRepo = "proprietario/repo").
+// Installer: scarica e installa. Versione portable: avvisa e apre la pagina di download.
+// ---------------------------------------------------------------------------
+const UPD = { state: 'idle', version: null, notes: null, progress: 0, error: null };
+let updater = null;
+function repoInfo() {
+  try {
+    const r = require('../package.json').trantorRepo;
+    if (!r || !/^[\w.-]+\/[\w.-]+$/.test(r)) return null;
+    const [owner, repo] = r.split('/');
+    return { owner, repo };
+  } catch { return null; }
+}
+const isPortable = () => !!process.env.PORTABLE_EXECUTABLE_FILE;
+function updatePayload() {
+  return { ...UPD, current: app.getVersion(), portable: isPortable(), enabled: !!(repoInfo() && app.isPackaged) };
+}
+function sendUpdate() { if (win && !win.isDestroyed()) win.webContents.send('update:state', updatePayload()); }
+function getUpdater() {
+  if (updater) return updater;
+  const r = repoInfo();
+  if (!r || !app.isPackaged) return null;
+  const { autoUpdater } = require('electron-updater');
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.setFeedURL({ provider: 'github', owner: r.owner, repo: r.repo });
+  const set = (patch) => { Object.assign(UPD, patch); sendUpdate(); };
+  autoUpdater.on('checking-for-update', () => set({ state: 'checking', error: null }));
+  autoUpdater.on('update-available', (i) => set({ state: 'available', version: i.version, notes: typeof i.releaseNotes === 'string' ? i.releaseNotes.replace(/<[^>]+>/g, '').slice(0, 2000) : null }));
+  autoUpdater.on('update-not-available', () => set({ state: 'none' }));
+  autoUpdater.on('download-progress', (p) => set({ state: 'downloading', progress: Math.round(p.percent || 0) }));
+  autoUpdater.on('update-downloaded', (i) => set({ state: 'ready', version: i.version }));
+  autoUpdater.on('error', (e) => set({ state: 'error', error: String((e && e.message) || e).split('\n')[0].slice(0, 300) }));
+  updater = autoUpdater;
+  return updater;
+}
+ipcMain.handle('update:get', () => updatePayload());
+ipcMain.handle('update:check', async () => {
+  const u = getUpdater();
+  if (!u) return updatePayload();
+  try { await u.checkForUpdates(); } catch (e) { UPD.state = 'error'; UPD.error = String(e.message || e).split('\n')[0]; }
+  return updatePayload();
+});
+ipcMain.handle('update:download', async () => {
+  const r = repoInfo();
+  if (isPortable() && r) { shell.openExternal(`https://github.com/${r.owner}/${r.repo}/releases/latest`); return updatePayload(); }
+  const u = getUpdater();
+  if (u) { try { await u.downloadUpdate(); } catch (e) { UPD.state = 'error'; UPD.error = String(e.message || e).split('\n')[0]; sendUpdate(); } }
+  return updatePayload();
+});
+ipcMain.handle('update:install', () => { const u = getUpdater(); if (u && UPD.state === 'ready') setImmediate(() => u.quitAndInstall(false, true)); });
 
 // ---------------------------------------------------------------------------
 // IPC — archivi JSON separati (cronologia comandi per cartella, disposizioni)

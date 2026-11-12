@@ -13,6 +13,8 @@ Funzioni principali:
 - **Schede e pannelli divisi** stile tmux, ma usabili anche col mouse (pulsanti su ogni pannello, divisori trascinabili, doppio clic sul divisore = 50/50)
 - **Barra laterale cartelle** che segue sempre il pannello attivo: preferiti, recenti, unità, contenuto della cartella con filtro
 - **Salta a cartella** (`Ctrl+G`): ricerca fuzzy su preferiti, cartelle recenti (frecency, come `z`/`zoxide`), sottocartelle e unità
+- **Dispositivi in rete**: trova PLC, pannelli, router e server nella rete locale, riconosce Modbus, S7, EtherNet/IP, OPC UA, SSH e interfacce web, e legge i registri Modbus (solo lettura)
+- **Riorganizzare i pannelli**: trascina i pannelli per spostarli, scambiarli, portarli in un'altra scheda o staccarli in una nuova finestra senza fermare la shell
 - **Cartelle intelligenti**: ricorda i comandi che lanci in ogni cartella, riconosce i progetti (git, Node, Python, Docker, .NET…) con azioni a un clic e ripristina le disposizioni dei pannelli salvate per progetto
 - **Suggerimenti e colori dei comandi**: suggerimento grigio dalla cronologia, menu di completamento con Tab, colori per comandi, stringhe e numeri (PowerShell), in tonalità Yaru
 - **Palette comandi** (`Ctrl+Shift+P`) con tutte le azioni e le scorciatoie
@@ -49,6 +51,8 @@ Se mancano, l'app ripiega su Segoe UI e Cascadia Mono / Consolas.
 | `Ctrl+Shift+L` | Filtra il contenuto della cartella nella barra laterale |
 | `Ctrl+H` | Comandi usati in questa cartella |
 | `Ctrl+Shift+R` | Azioni del progetto |
+| `Ctrl+Shift+N` | Dispositivi in rete |
+| `Ctrl+Alt+Shift+frecce` | Scambia il pannello attivo con quello vicino |
 | `Alt+Su` | Cartella superiore (con più pannelli: sposta il focus in su) |
 | `Alt+1…9` | Vai al preferito n° 1…9 |
 | `Ctrl+Shift+S` | Aggiungi/rimuovi la cartella corrente dai preferiti |
@@ -73,6 +77,38 @@ clic = entra · `Ctrl`+clic o clic centrale = nuova scheda · `Shift`+clic = pan
 Puoi anche **trascinare una cartella da Esplora file** dentro un pannello per entrarci (un file trascinato inserisce il suo percorso).
 
 Nel campo filtro della barra laterale puoi scrivere un percorso (`D:\Progetti`, `..`, `~\Documents`) e premere Invio; `Backspace` a campo vuoto sale di una cartella.
+
+## Dispositivi in rete
+
+<img src="docs/network.png" width="340" align="right" alt="Dispositivi in rete">
+
+Apri la scheda **Rete** della barra laterale (`Ctrl+Shift+N`), controlla l'intervallo di indirizzi e premi **Scansiona**. Trantor:
+
+- prova le porte più comuni su ogni indirizzo e poi legge la tabella ARP di Windows, così trova anche i dispositivi che non rispondono su nessuna porta;
+- mostra il produttore dall'indirizzo MAC (database IEEE);
+- riconosce i servizi con richieste di sola lettura: versione SSH, titolo della pagina web, identificazione **Modbus TCP** (produttore, prodotto, versione), nome del prodotto **EtherNet/IP**, risposta **OPC UA** e **Siemens S7**, MQTT, IEC 104, DNP3, Beckhoff ADS, RDP, VNC, stampanti e telecamere;
+- raggruppa i dispositivi in automazione, rete, computer, stampanti, telecamere.
+
+Clic su un dispositivo per dettagli e azioni: SSH (scegliendo l'utente), interfaccia web, ping continuo in un nuovo pannello, desktop remoto, copia IP / MAC / endpoint OPC UA, e **Leggi registri Modbus**: holding e input register, coil, ingressi discreti, visualizzati senza segno, con segno, esadecimali, binari o float32, con aggiornamento ogni secondo e i valori cambiati evidenziati. Trantor non scrive mai sui dispositivi.
+
+Usa la scansione solo su reti che gestisci o per cui hai l'autorizzazione.
+
+<br clear="right">
+
+## Riorganizzare i pannelli
+
+Trascina un pannello dalla sua intestazione:
+
+- sul **bordo** di un altro pannello → si sposta accanto a quello, da quel lato;
+- al **centro** di un altro pannello → i due si scambiano;
+- su una **scheda** → passa in quella scheda; sul **+** → diventa una scheda a sé;
+- **fuori dalla finestra** → si stacca in una nuova finestra. La shell continua a funzionare e il contenuto resta.
+
+Le stesse azioni sono nel menu del tasto destro del pannello. `Ctrl+Alt+Shift+frecce` scambia il pannello attivo con quello vicino.
+
+## Aggiornamenti
+
+La versione installata controlla le nuove release all'avvio e ogni 6 ore. Quando ce n'è una compare il pulsante **Aggiorna** nella barra in alto: scarica l'aggiornamento, poi **Riavvia per aggiornare** lo installa e riapre la sessione. La versione portable mostra il link al nuovo download. Il controllo automatico si può disattivare dalla palette comandi.
 
 ## Cartelle intelligenti
 
@@ -164,6 +200,7 @@ Per pubblicare una release: su GitHub vai in **Releases → Draft a new release*
 scripts/
   ensure-electron.js scarica Electron se lo script ufficiale non l'ha fatto
   check.js           controllo sintassi (npm run lint)
+  test.js            test automatici (npm test)
 build/               icona e script dell'installer
 src/
   main.js            processo principale: finestra, ConPTY, filesystem, configurazione
@@ -174,6 +211,10 @@ src/
     icons.js         icone simboliche
     app.js           schede, pannelli, barra laterale, picker, scorciatoie
     smart.js         cronologia per cartella, progetti, git, disposizioni
+    panes.js         trascinare, scambiare, spostare e staccare i pannelli
+    network.js       vista dispositivi in rete e lettura Modbus
+    updates.js       pulsante di aggiornamento
+  netscan.js         scansione di rete, riconoscimento servizi, Modbus TCP
 ```
 
 Configurazione, preferiti, cronologia e sessione sono salvati in `%APPDATA%\Trantor\config.json`.

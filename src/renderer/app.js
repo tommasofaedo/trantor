@@ -23,7 +23,9 @@ const S = {
   sidebarDir: null, sidebarEntries: [], sidebarSel: -1
 };
 let uid = 0;
-const nextId = (p) => `${p}${++uid}`;
+// identificativi unici anche tra finestre diverse (un pannello può passare da una finestra all'altra)
+const WIN_TOKEN = Math.random().toString(36).slice(2, 7);
+const nextId = (p) => `${p}${WIN_TOKEN}${++uid}`;
 const isWin = () => S.info.platform === 'win32';
 const sep = () => S.info.sep;
 
@@ -104,8 +106,8 @@ function quoteForShell(kind, p) {
 // Pannello terminale
 // =========================================================================
 class Pane {
-  constructor(profile, cwd) {
-    this.id = nextId('p');
+  constructor(profile, cwd, opts = {}) {
+    this.id = opts.id || nextId('p');
     this.profile = profile;
     this.cwd = cwd || S.info.home;
     this.title = '';
@@ -177,6 +179,8 @@ class Pane {
     this.search = new SearchAddon.SearchAddon();
     this.term.loadAddon(this.fit);
     this.term.loadAddon(this.search);
+    this.serializer = new SerializeAddon.SerializeAddon();
+    this.term.loadAddon(this.serializer);
     this.term.loadAddon(new WebLinksAddon.WebLinksAddon((_e, uri) => window.yt.openUrl(uri)));
     const u11 = new Unicode11Addon.Unicode11Addon();
     this.term.loadAddon(u11);
@@ -199,15 +203,25 @@ class Pane {
 
     this.ro = new ResizeObserver(debounce(() => this.doFit(), 30));
     this.renderPath();
+    setupPaneDrag(this);
   }
 
-  async start() {
+  async start(adopt) {
     this.term.open(this.termEl);
     if (window.WebglAddon) {
       try { const gl = new WebglAddon.WebglAddon(); gl.onContextLoss(() => gl.dispose()); this.term.loadAddon(gl); } catch {}
     }
     this.ro.observe(this.termEl);
     this.doFit();
+    if (adopt) {
+      // shell già avviata in un'altra finestra: ripristina il contenuto e ricevi i dati in coda
+      if (adopt.serialized) this.term.write(adopt.serialized);
+      this.alive = true;
+      window.yt.adopted(this.id);
+      window.yt.resize(this.id, this.term.cols, this.term.rows);
+      this.setCwd(adopt.cwd, true);
+      return;
+    }
     const res = await window.yt.spawn({ id: this.id, profile: this.profile, cwd: this.cwd, cols: this.term.cols, rows: this.term.rows, enhance: S.cfg.shellEnhancements !== false });
     this.alive = true;
     if (res && res.cwd) this.setCwd(res.cwd, true);
@@ -257,9 +271,9 @@ class Pane {
     this.term.focus();
   }
 
-  dispose() {
+  dispose(keepShell) {
     this.ro.disconnect();
-    window.yt.kill(this.id);
+    if (!keepShell) window.yt.kill(this.id);
     this.term.dispose();
     this.el.remove();
   }
@@ -560,7 +574,7 @@ function serializeSession() {
     : { type: 'split', dir: n.dir, ratio: n.ratio, a: ser(n.a), b: ser(n.b) };
   return { tabs: S.tabs.map((t) => ser(t.root)), active: S.tabs.findIndex((t) => t.id === S.activeTab) };
 }
-function saveSessionNow() { if (S.tabs.length) window.yt.saveConfig({ session: serializeSession(), history: S.cfg.history, bookmarks: S.cfg.bookmarks }); }
+function saveSessionNow() { if (S.info && S.info.secondary) return; if (S.tabs.length) window.yt.saveConfig({ session: serializeSession(), history: S.cfg.history, bookmarks: S.cfg.bookmarks }); }
 const saveSessionSoon = debounce(saveSessionNow, 1000);
 window.addEventListener('beforeunload', saveSessionNow);
 
@@ -938,6 +952,8 @@ function commands() {
     { label: 'Filtra cartella corrente', icon: 'search', kbd: 'Ctrl+Shift+L', run: focusSidebarFilter },
     { label: 'Comandi usati in questa cartella', icon: 'history', kbd: 'Ctrl+H', run: openDirCommands },
     { label: 'Azioni del progetto', icon: 'box', kbd: 'Ctrl+Shift+R', run: openProjectActions },
+    { label: 'Dispositivi in rete', icon: 'router', kbd: 'Ctrl+Shift+N', run: toggleNetView },
+    { label: 'Scansiona la rete', icon: 'router', run: () => { if (S.sidebarMode !== 'net') toggleNetView(); setTimeout(startScan, 300); } },
     ...(S.project ? [{ label: `Salva la disposizione per ${S.project.name}`, icon: 'splitH', run: saveLayout }] : []),
     ...(S.project && layoutFor(S.project.root) ? [{ label: `Apri la disposizione di ${S.project.name}`, icon: 'splitH', run: () => openLayout(layoutFor(S.project.root)) }] : []),
     { label: `Attiva da solo l’ambiente Python: ${S.cfg.autoVenv ? 'attivo' : 'disattivo'}`, icon: 'python', run: toggleAutoVenv },
@@ -947,6 +963,10 @@ function commands() {
     { label: 'Dividi in basso', icon: 'splitV', kbd: 'Ctrl+Shift+E', run: () => splitPane(null, 'v') },
     ...S.profiles.map((pr) => ({ label: `Dividi a destra con ${pr.name}`, icon: 'splitH', run: () => splitPane(null, 'h', null, pr) })),
     { label: 'Ingrandisci / ripristina pannello', icon: 'zoom', kbd: 'Ctrl+Shift+Z', run: toggleZoom },
+    { label: 'Sposta il pannello in una nuova scheda', icon: 'plus', run: () => p && movePaneToNewTab(p.id) },
+    { label: 'Stacca il pannello in una nuova finestra', icon: 'external', run: () => p && detachPane(p.id) },
+    { label: 'Scambia il pannello con quello a destra', icon: 'splitH', kbd: 'Ctrl+Alt+Shift+→', run: () => swapWithNeighbor('right') },
+    { label: 'Scambia il pannello con quello sotto', icon: 'splitV', kbd: 'Ctrl+Alt+Shift+↓', run: () => swapWithNeighbor('down') },
     { label: 'Chiudi pannello', icon: 'close', kbd: 'Ctrl+Shift+W', run: () => p && closePane(p.id) },
     { label: 'Chiudi scheda', icon: 'close', kbd: 'Ctrl+Shift+Q', run: () => closeTab(S.activeTab) },
     { label: 'Scheda successiva', icon: 'chevronRight', kbd: 'Ctrl+Tab', run: () => cycleTab(1) },
@@ -967,6 +987,8 @@ function commands() {
     ...S.profiles.map((pr) => ({ label: `Shell predefinita: ${pr.name}`, icon: pr.icon, tag: defaultProfile().id === pr.id ? 'attuale' : null, run: () => { S.cfg.defaultProfile = pr.id; window.yt.saveConfig({ defaultProfile: pr.id }); toast(`${pr.name} è ora la shell predefinita`); } })),
     { label: 'Scorciatoie da tastiera', icon: 'command', kbd: 'F1', run: showShortcuts },
     { label: 'Verifica integrazione della shell', icon: 'terminal', run: checkIntegration },
+    { label: 'Controlla aggiornamenti', icon: 'up', run: () => checkUpdates(true) },
+    { label: `Aggiornamenti automatici: ${S.cfg.autoUpdate !== false ? 'attivi' : 'disattivati'}`, icon: 'up', run: toggleAutoUpdate },
     { label: `Informazioni su Trantor ${S.info.version || ''}`, icon: 'terminal', run: () => toast(`Trantor ${S.info.version || ''} · licenza MIT`) }
   ];
   return list;
@@ -990,12 +1012,15 @@ function showShortcuts() {
     ['Ctrl+Shift+L', 'Filtra il contenuto della cartella nella barra laterale'],
     ['Ctrl+H', 'Comandi usati in questa cartella'],
     ['Ctrl+Shift+R', 'Azioni del progetto (npm, docker, make…)'],
+    ['Ctrl+Shift+N', 'Dispositivi in rete'],
     ['Alt+Su', 'Vai alla cartella superiore'],
     ['Alt+1…9', 'Vai al preferito n°'],
     ['Ctrl+Shift+D / E', 'Dividi pannello a destra / in basso'],
     ['Alt+Frecce', 'Sposta il focus tra i pannelli'],
     ['Ctrl+Alt+Frecce', 'Ridimensiona il pannello attivo'],
     ['Ctrl+Shift+Z', 'Ingrandisci/ripristina pannello (come tmux zoom)'],
+    ['Ctrl+Alt+Shift+Frecce', 'Scambia il pannello con quello vicino'],
+    ['Trascina l’intestazione', 'Sposta, scambia, porta in un’altra scheda o fuori dalla finestra'],
     ['Ctrl+Shift+W', 'Chiudi pannello'],
     ['Ctrl+Shift+T', 'Nuova scheda'],
     ['Ctrl+Tab / Ctrl+1…9', 'Cambia scheda'],
@@ -1073,6 +1098,7 @@ function paneMenu(p, x, y) {
     { label: 'Dividi a destra', icon: 'splitH', kbd: 'Ctrl+Shift+D', run: () => splitPane(p.id, 'h') },
     { label: 'Dividi in basso', icon: 'splitV', kbd: 'Ctrl+Shift+E', run: () => splitPane(p.id, 'v') },
     { label: activeTab()?.zoomed ? 'Ripristina pannello' : 'Ingrandisci pannello', icon: 'zoom', kbd: 'Ctrl+Shift+Z', run: toggleZoom },
+    ...paneMoveItems(p),
     '-',
     { label: 'Salta a cartella…', icon: 'jump', kbd: 'Ctrl+G', run: openJump },
     { label: 'Apri cartella in Esplora file', icon: 'external', run: () => window.yt.openPath(p.cwd) },
@@ -1131,6 +1157,7 @@ function handleShortcut(e, pane) {
     switch (code) {
       case 'KeyP': return run(openPalette);
       case 'KeyR': return run(openProjectActions);
+      case 'KeyN': return run(toggleNetView);
       case 'KeyT': return run(() => newTab());
       case 'KeyD': return run(() => splitPane(null, 'h'));
       case 'KeyE': return run(() => splitPane(null, 'v'));
@@ -1153,6 +1180,10 @@ function handleShortcut(e, pane) {
     if (code === 'Minus' || code === 'NumpadSubtract') return run(() => setFontSize(S.cfg.fontSize - 1));
     if (code === 'Digit0' || code === 'Numpad0') return run(() => setFontSize(14));
     if (/^Digit[1-9]$/.test(code)) { const i = +code.slice(5) - 1; if (S.tabs[i]) return run(() => activateTab(S.tabs[i].id)); }
+  }
+  if (ctrl && alt && shift) {
+    const m = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' }[k];
+    if (m) return run(() => swapWithNeighbor(m));
   }
   if (ctrl && alt && !shift) {
     const m = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' }[k];
@@ -1219,7 +1250,8 @@ function setupHeaderbar() {
       { label: 'Ripristina sessione all’avvio', icon: 'clock', check: S.cfg.restoreSession, run: () => { S.cfg.restoreSession = !S.cfg.restoreSession; window.yt.saveConfig({ restoreSession: S.cfg.restoreSession }); } },
       '-',
       { label: 'Scorciatoie da tastiera', icon: 'command', kbd: 'F1', run: showShortcuts },
-      { label: 'Verifica integrazione della shell', icon: 'terminal', run: checkIntegration }
+      { label: 'Verifica integrazione della shell', icon: 'terminal', run: checkIntegration },
+      { label: 'Controlla aggiornamenti', icon: 'up', run: () => checkUpdates(true) }
     ], r.right - 260, r.bottom + 6);
   };
   $('#btn-profiles').onclick = (e) => {
@@ -1275,10 +1307,19 @@ async function init() {
   setupSidebar();
   setupSearch();
   setupSmart();
+  setupUpdates();
+  setupTabDrop();
+  setupNetwork();
 
   try { await document.fonts.load(`${S.cfg.fontSize}px ${S.cfg.fontFamily}`); } catch {}
 
   window.yt.onOpenDir((dir) => newTab(defaultProfile(), dir || S.info.home));
+
+  // Finestra nata da un pannello staccato: adotta la shell esistente
+  if (S.info.secondary) {
+    const adopt = await window.yt.adoptInfo();
+    if (adopt) { await adoptPaneInNewTab(adopt); return; }
+  }
 
   // Avviato con una cartella (es. "Apri in Trantor"): apri solo quella
   const sess = !S.info.startDir && S.cfg.restoreSession && S.cfg.session;

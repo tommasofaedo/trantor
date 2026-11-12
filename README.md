@@ -36,6 +36,8 @@ Windows 10 and 11, 64-bit. Nothing else to install. Older versions and release n
 - **Session restore**: tabs, splits and folders come back when you reopen the app.
 - **Shells detected automatically**: PowerShell 7, Windows PowerShell, Command Prompt, Git Bash, WSL.
 - **Explorer integration**: "Open in Trantor" context-menu entry, drag a folder onto a pane to `cd` into it.
+- **Network devices**: finds PLCs, panels, routers and servers on the local network, recognizes Modbus, S7, EtherNet/IP, OPC UA, SSH and web interfaces, and reads Modbus registers (read only).
+- **Rearrange panes**: drag panes to move, swap, send them to another tab or detach them into a new window without stopping the shell.
 - **Smart folders**: remembers the commands you run in each folder, recognizes projects (git, Node, Python, Docker, .NET…) with one-click actions, and restores saved pane layouts per project.
 - **Command suggestions and syntax colors**: grey inline suggestions from history, Tab completion menu, colors for commands, strings and numbers (PowerShell), all in Yaru tones.
 - **Yaru Dark theme** with the official Yaru blue accent (`#0073E5`), Ubuntu terminal palette, WebGL rendering.
@@ -52,6 +54,8 @@ Windows 10 and 11, 64-bit. Nothing else to install. Older versions and release n
 | `Ctrl+Shift+L` | Filter the current folder in the sidebar |
 | `Ctrl+H` | Commands used in this folder |
 | `Ctrl+Shift+R` | Project actions |
+| `Ctrl+Shift+N` | Network devices |
+| `Ctrl+Alt+Shift+Arrows` | Swap the active pane with its neighbour |
 | `Alt+Up` | Parent folder (moves focus up when there are several panes) |
 | `Alt+1…9` | Go to bookmark 1…9 |
 | `Ctrl+Shift+S` | Bookmark / unbookmark the current folder |
@@ -72,6 +76,38 @@ Windows 10 and 11, 64-bit. Nothing else to install. Older versions and release n
 | `F1` | Shortcut list |
 
 Mouse, in the sidebar and in Jump to folder: click = enter · `Ctrl`+click or middle-click = new tab · `Shift`+click = split right · `Alt`+click = split down · right-click = menu.
+
+## Network devices
+
+<img src="docs/network.png" width="340" align="right" alt="Network devices">
+
+Open the **Rete** tab of the sidebar (`Ctrl+Shift+N`), check the network range and press **Scansiona**. Trantor:
+
+- tries the most common ports on every address and then reads the Windows ARP table, so it also finds devices that don't answer on any port;
+- shows the vendor from the MAC address (IEEE database);
+- recognizes services with read-only requests: SSH banner, web page title, **Modbus TCP** device identification (vendor, product, version), **EtherNet/IP** product name, **OPC UA** and **Siemens S7** handshakes, MQTT, IEC 104, DNP3, Beckhoff ADS, RDP, VNC, printers and cameras;
+- groups devices as automation, network, computers, printers, cameras.
+
+Click a device for details and actions: SSH (choose the user), open the web interface, continuous ping in a new pane, remote desktop, copy IP / MAC / OPC UA endpoint, and **Read Modbus registers**: holding/input registers, coils, discrete inputs, shown as unsigned, signed, hex, binary or float32, optionally refreshed every second with changed values highlighted. Trantor never writes to devices.
+
+Scan only networks you manage or are authorized to test.
+
+<br clear="right">
+
+## Rearranging panes
+
+Drag a pane by its header:
+
+- onto the **edge** of another pane → it moves next to it on that side;
+- onto the **centre** of another pane → the two swap;
+- onto a **tab** → it moves into that tab; onto **+** → it gets its own tab;
+- **outside the window** → it is detached into a new window. The shell keeps running and the content is preserved.
+
+The same actions are in the pane's right-click menu. `Ctrl+Alt+Shift+arrows` swaps the active pane with its neighbour.
+
+## Updates
+
+The installed version checks for new releases at start-up and every 6 hours. When one is available an **Update** button appears in the header bar: it downloads the update, then **Restart to update** installs it and reopens your session. The portable version shows a link to the new download. Automatic checks can be turned off from the command palette.
 
 ## Smart folders
 
@@ -173,9 +209,14 @@ src/
     icons.js           symbolic icons
     app.js             tabs, panes, sidebar, pickers, shortcuts
     smart.js           per-folder history, projects, git, saved layouts
+    panes.js           drag, swap, move and detach panes
+    network.js         network devices view and Modbus reader
+    updates.js         update button
+  netscan.js           network scan, service recognition, Modbus TCP
 scripts/
   ensure-electron.js   fallback Electron download
   check.js             syntax check (npm run lint)
+  test.js              automated tests (npm test)
 build/                 icons and installer script
 ```
 

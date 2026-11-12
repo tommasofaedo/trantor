@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.0 — 2026-11-12
+
+- **Network devices** (sidebar → Rete, Ctrl+Shift+N): scans the local network, finds devices also through the ARP table, shows the vendor from the MAC address and recognizes services: SSH, web, Siemens S7, Modbus TCP (vendor/product via device identification), EtherNet/IP (product name), OPC UA, MQTT, IEC 104, DNP3, ADS, RDP, VNC, printers, cameras. One-click actions: SSH with user choice, web interface, continuous ping, remote desktop, copy IP/MAC/OPC UA endpoint
+- **Modbus read window**: holding/input registers, coils and discrete inputs, unsigned/signed/hex/binary/float32 formats, refresh every second with changed values highlighted. Read only: Trantor never writes to devices
+- **Rearrange panes**: drag a pane by its header onto another pane's edge to move it there, onto its centre to swap, onto a tab to move it to that tab, onto + for a new tab, or outside the window to detach it into a new window — the shell keeps running and the content is preserved. Ctrl+Alt+Shift+arrows swaps with the neighbouring pane
+- **Automatic updates**: the installed version checks GitHub releases at start-up and every 6 hours and shows an update button; download and restart keep the session. The portable version shows a link to the new download
+- Automated tests (`npm test`) run in CI on Windows
+
 ## 1.2.1 — 2026-11-12
 
 - "Usati qui" is always visible and explains what it will show (or that the Command Prompt can't report commands) instead of staying hidden until the first command

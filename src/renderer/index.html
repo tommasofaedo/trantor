@@ -19,6 +19,7 @@
       <div class="drag-spacer"></div>
       <button class="hb-btn" id="btn-split-h" title="Dividi a destra (Ctrl+Shift+D)"></button>
       <button class="hb-btn" id="btn-split-v" title="Dividi in basso (Ctrl+Shift+E)"></button>
+ <button class="update-pill hidden" id="btn-update"></button>
       <button class="hb-btn" id="btn-palette" title="Comandi (Ctrl+Shift+P)"></button>
       <div id="wincontrols">
         <button class="wc" id="wc-min" title="Riduci a icona"></button>
@@ -29,6 +30,11 @@
 
     <div id="body">
       <aside id="sidebar">
+        <div class="sb-mode" role="tablist">
+          <button data-mode="files" class="on" title="Cartelle e progetti">Cartelle</button>
+          <button data-mode="net" title="Dispositivi in rete (Ctrl+Shift+N)">Rete</button>
+        </div>
+        <div id="sb-files" class="sb-pane">
         <div class="sb-search">
           <span class="sb-search-icon"></span>
           <input id="sb-filter" type="text" spellcheck="false" placeholder="Filtra, o scrivi un percorso…" />
@@ -67,6 +73,22 @@
             <ul id="sb-list"></ul>
           </section>
         </div>
+        </div>
+        <div id="sb-net" class="sb-pane hidden">
+          <div class="net-controls">
+            <select id="net-if" title="Scheda di rete"></select>
+            <div class="net-range">
+              <input id="net-range" type="text" spellcheck="false" placeholder="192.168.1.0/24 oppure 192.168.1.10-50" />
+              <button id="net-scan" class="btn-accent">Scansiona</button>
+            </div>
+            <div class="net-progress hidden"><div class="bar"><i></i></div><span id="net-status"></span></div>
+          </div>
+          <div class="sb-search net-filter">
+            <span class="net-filter-icon"></span>
+            <input id="net-filter" type="text" spellcheck="false" placeholder="Filtra per IP, nome, produttore, servizio…" />
+          </div>
+          <div class="sb-scroll" id="net-list"></div>
+        </div>
       </aside>
       <div id="sidebar-resizer"></div>
       <main id="workspace"></main>
@@ -82,6 +104,43 @@
       </div>
       <ul id="picker-list"></ul>
       <div id="picker-hints"></div>
+    </div>
+  </div>
+
+
+  <!-- Lettura Modbus TCP (solo lettura) -->
+  <div id="mb-overlay" class="hidden">
+    <div id="mb-dialog" role="dialog" aria-label="Lettura Modbus">
+      <div class="mb-head">
+        <span class="mb-icon"></span><b>Lettura Modbus</b><span id="mb-target" class="mono"></span>
+        <button class="icon-btn" id="mb-close" title="Chiudi (Esc)"></button>
+      </div>
+      <div class="mb-form">
+        <label>Unit ID<input id="mb-unit" type="number" min="0" max="255" value="1" /></label>
+        <label>Funzione<select id="mb-fc">
+          <option value="3">03 · Holding register</option>
+          <option value="4">04 · Input register</option>
+          <option value="1">01 · Coil</option>
+          <option value="2">02 · Ingressi discreti</option>
+        </select></label>
+        <label>Indirizzo<input id="mb-addr" type="number" min="0" max="65535" value="0" /></label>
+        <label>Quantità<input id="mb-qty" type="number" min="1" max="125" value="10" /></label>
+        <label>Formato<select id="mb-fmt">
+          <option value="u16">Senza segno</option>
+          <option value="s16">Con segno</option>
+          <option value="hex">Esadecimale</option>
+          <option value="bin">Binario</option>
+          <option value="f32">Float 32</option>
+          <option value="f32s">Float 32 (word invertite)</option>
+        </select></label>
+      </div>
+      <div class="mb-actions">
+        <button id="mb-read" class="btn-accent">Leggi</button>
+        <label class="chk"><input type="checkbox" id="mb-poll" /> Aggiorna ogni secondo</label>
+        <span id="mb-status"></span>
+      </div>
+      <div class="mb-table-wrap"><table id="mb-table"><thead><tr><th>Indirizzo</th><th>Valore</th></tr></thead><tbody></tbody></table></div>
+      <div class="mb-note">Solo lettura: Trantor non scrive mai sui dispositivi. Indirizzi a base 0: il registro 40001 è l’indirizzo 0 con la funzione 03.</div>
     </div>
   </div>
 
@@ -101,8 +160,12 @@
   <script src="../../node_modules/@xterm/addon-search/lib/addon-search.js"></script>
   <script src="../../node_modules/@xterm/addon-unicode11/lib/addon-unicode11.js"></script>
   <script src="../../node_modules/@xterm/addon-webgl/lib/addon-webgl.js"></script>
+  <script src="../../node_modules/@xterm/addon-serialize/lib/addon-serialize.js"></script>
   <script src="icons.js"></script>
   <script src="app.js"></script>
   <script src="smart.js"></script>
+  <script src="updates.js"></script>
+  <script src="panes.js"></script>
+  <script src="network.js"></script>
 </body>
 </html>
