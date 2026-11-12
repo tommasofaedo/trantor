@@ -1,0 +1,96 @@
+{
+  "name": "trantor",
+  "productName": "Trantor",
+  "version": "1.0.0",
+  "description": "Trantor — a modern Windows terminal with tmux-style split panes, fast folder navigation and a Yaru Dark look",
+  "main": "src/main.js",
+  "author": "Trantor contributors",
+  "license": "MIT",
+  "homepage": "https://github.com/tommasofaedo/trantor#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tommasofaedo/trantor.git"
+  },
+  "bugs": {
+    "url": "https://github.com/tommasofaedo/trantor/issues"
+  },
+  "keywords": [
+    "terminal",
+    "windows",
+    "electron",
+    "xterm",
+    "conpty",
+    "tmux",
+    "split-panes",
+    "yaru",
+    "powershell",
+    "wsl",
+    "asimov"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "postinstall": "node scripts/ensure-electron.js",
+    "start": "electron .",
+    "lint": "node scripts/check.js",
+    "dist": "electron-builder --win nsis portable",
+    "dist:dir": "electron-builder --win --dir"
+  },
+  "dependencies": {
+    "@lydell/node-pty": "1.1.0",
+    "@xterm/addon-fit": "^0.10.0",
+    "@xterm/addon-search": "^0.15.0",
+    "@xterm/addon-unicode11": "^0.8.0",
+    "@xterm/addon-web-links": "^0.11.0",
+    "@xterm/addon-webgl": "^0.18.0",
+    "@xterm/xterm": "^5.5.0"
+  },
+  "devDependencies": {
+    "electron": "^38.0.0",
+    "electron-builder": "^26.0.0"
+  },
+  "build": {
+    "appId": "io.github.trantor",
+    "productName": "Trantor",
+    "copyright": "Copyright © 2026 Trantor contributors",
+    "directories": {
+      "buildResources": "build",
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "build/icon.png",
+      "package.json",
+      "!**/*.map"
+    ],
+    "asarUnpack": [
+      "node_modules/@lydell/**/*"
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "artifactName": "${productName}-${version}-${arch}-${target}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "include": "build/installer.nsh",
+      "artifactName": "${productName}-Setup-${version}-${arch}.${ext}"
+    },
+    "portable": {
+      "artifactName": "${productName}-Portable-${version}-${arch}.${ext}"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "tommasofaedo",
+      "repo": "trantor",
+      "releaseType": "release"
+    }
+  }
+}

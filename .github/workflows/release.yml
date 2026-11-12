@@ -1,0 +1,31 @@
+name: Release
+
+# Si avvia quando pubblichi una release su GitHub (Releases → Draft a new release).
+# Compila installer e versione portable per Windows e li allega alla release.
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - name: Build installer and portable
+        run: npx electron-builder --win nsis portable --x64 --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+      - name: Upload to the release
+        shell: bash
+        run: gh release upload "${{ github.event.release.tag_name }}" dist/*.exe dist/latest.yml --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:" />
+  <title>Trantor</title>
+  <link rel="stylesheet" href="../../node_modules/@xterm/xterm/css/xterm.css" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <header id="headerbar">
+      <button class="hb-btn" id="btn-sidebar" title="Mostra/nascondi cartelle (Ctrl+B)"></button>
+      <div id="tabs" role="tablist"></div>
+      <div class="linked">
+        <button class="hb-btn" id="btn-newtab" title="Nuova scheda (Ctrl+Shift+T)"></button>
+        <button class="hb-btn narrow" id="btn-profiles" title="Scegli shell"></button>
+      </div>
+      <div class="drag-spacer"></div>
+      <button class="hb-btn" id="btn-split-h" title="Dividi a destra (Ctrl+Shift+D)"></button>
+      <button class="hb-btn" id="btn-split-v" title="Dividi in basso (Ctrl+Shift+E)"></button>
+      <button class="hb-btn" id="btn-palette" title="Comandi (Ctrl+Shift+P)"></button>
+      <div id="wincontrols">
+        <button class="wc" id="wc-min" title="Riduci a icona"></button>
+        <button class="wc" id="wc-max" title="Ingrandisci"></button>
+        <button class="wc" id="wc-close" title="Chiudi"></button>
+      </div>
+    </header>
+
+    <div id="body">
+      <aside id="sidebar">
+        <div class="sb-search">
+          <span class="sb-search-icon"></span>
+          <input id="sb-filter" type="text" spellcheck="false" placeholder="Filtra, o scrivi un percorso…" />
+        </div>
+
+        <div class="sb-location">
+          <button class="icon-btn" id="sb-up" title="Cartella superiore"></button>
+          <div id="sb-crumbs" class="crumbs"></div>
+          <button class="icon-btn" id="sb-star" title="Aggiungi ai preferiti"></button>
+          <button class="icon-btn" id="sb-explorer" title="Apri in Esplora file"></button>
+        </div>
+
+        <div class="sb-scroll">
+          <section class="sb-section" id="sec-bookmarks">
+            <h3><span>Preferiti</span></h3>
+            <ul id="sb-bookmarks"></ul>
+          </section>
+          <section class="sb-section" id="sec-recent">
+            <h3><span>Recenti</span></h3>
+            <ul id="sb-recent"></ul>
+          </section>
+          <section class="sb-section" id="sec-drives">
+            <h3><span>Unità</span></h3>
+            <ul id="sb-drives" class="chips"></ul>
+          </section>
+          <section class="sb-section" id="sec-content">
+            <h3><span>Contenuto</span><button class="icon-btn small" id="sb-hidden" title="Mostra file nascosti"></button></h3>
+            <ul id="sb-list"></ul>
+          </section>
+        </div>
+      </aside>
+      <div id="sidebar-resizer"></div>
+      <main id="workspace"></main>
+    </div>
+  </div>
+
+  <!-- Finestra modale riutilizzabile: palette comandi / salta a cartella -->
+  <div id="overlay" class="hidden">
+    <div id="picker">
+      <div class="picker-input">
+        <span class="picker-icon"></span>
+        <input id="picker-input" type="text" spellcheck="false" />
+      </div>
+      <ul id="picker-list"></ul>
+      <div id="picker-hints"></div>
+    </div>
+  </div>
+
+  <div id="searchbar" class="hidden">
+    <input id="search-input" type="text" spellcheck="false" placeholder="Cerca nel terminale" />
+    <button class="icon-btn" id="search-prev" title="Precedente (Shift+Invio)"></button>
+    <button class="icon-btn" id="search-next" title="Successivo (Invio)"></button>
+    <button class="icon-btn" id="search-close" title="Chiudi (Esc)"></button>
+  </div>
+
+  <div id="menu" class="popover hidden"></div>
+  <div id="toast" class="hidden"></div>
+
+  <script src="../../node_modules/@xterm/xterm/lib/xterm.js"></script>
+  <script src="../../node_modules/@xterm/addon-fit/lib/addon-fit.js"></script>
+  <script src="../../node_modules/@xterm/addon-web-links/lib/addon-web-links.js"></script>
+  <script src="../../node_modules/@xterm/addon-search/lib/addon-search.js"></script>
+  <script src="../../node_modules/@xterm/addon-unicode11/lib/addon-unicode11.js"></script>
+  <script src="../../node_modules/@xterm/addon-webgl/lib/addon-webgl.js"></script>
+  <script src="icons.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

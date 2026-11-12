@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#383838"/><stop offset="1" stop-color="#1F1F1F"/></linearGradient>
+    <linearGradient id="fold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3D9BFF"/><stop offset="1" stop-color="#0060C8"/></linearGradient>
+    <linearGradient id="back" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0073E5"/><stop offset="1" stop-color="#004E9E"/></linearGradient>
+  </defs>
+  <rect x="12" y="12" width="232" height="232" rx="56" fill="url(#bg)"/>
+  <rect x="12.5" y="12.5" width="231" height="231" rx="55.5" fill="none" stroke="#fff" stroke-opacity=".09"/>
+  <path d="M44 78a14 14 0 0 1 14-14h40l16 16h84a14 14 0 0 1 14 14v8H44z" fill="url(#back)"/>
+  <rect x="44" y="92" width="168" height="112" rx="16" fill="url(#fold)"/>
+  <rect x="44" y="92" width="168" height="1.5" fill="#fff" fill-opacity=".35"/>
+  <path d="M78 124 L104 146 L78 168" fill="none" stroke="#fff" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M118 170 H150" stroke="#fff" stroke-width="13" stroke-linecap="round"/>
+</svg>
