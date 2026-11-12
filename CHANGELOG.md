@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.0 — 2026-11-12
+
+- Command suggestions while you type (PowerShell): grey inline prediction from history and plugins, accepted with → or word by word with Ctrl+→
+- Tab opens a completion menu; ↑/↓ search history filtered by what you've typed (PowerShell, Git Bash, WSL)
+- Syntax colors on the command line in Yaru style: commands, parameters and variables, strings, numbers, comments, errors
+- PowerShell 7 output colors (table headers, folders, warnings, errors) aligned with Yaru
+- Terminal ANSI palette based on official Yaru accent colors
+- New setting "Suggerimenti e colori nella shell" to turn all of this off and keep your own PSReadLine setup
+
 ## 1.0.0 — 2026-11-12
 
 First public version.

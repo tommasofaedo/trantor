@@ -21,6 +21,7 @@
 - **Session restore**: tabs, splits and folders come back when you reopen the app.
 - **Shells detected automatically**: PowerShell 7, Windows PowerShell, Command Prompt, Git Bash, WSL.
 - **Explorer integration**: "Open in Trantor" context-menu entry, drag a folder onto a pane to `cd` into it.
+- **Command suggestions and syntax colors**: grey inline suggestions from history, Tab completion menu, colors for commands, strings and numbers (PowerShell), all in Yaru tones.
 - **Yaru Dark theme** with the official Yaru blue accent (`#0073E5`), Ubuntu terminal palette, WebGL rendering.
 
 ![Jump to folder](docs/jump-to-folder.png)
@@ -68,10 +69,34 @@ npm run dist
 | `Ctrl+Shift+F` | Find in terminal |
 | `Ctrl+B` | Toggle sidebar |
 | `Ctrl+=`, `Ctrl+-`, `Ctrl+0`, `Ctrl+wheel` | Font size |
+| `→` / `Ctrl+→` | Accept the suggestion / one word of it |
+| `Tab` / `↑` `↓` | Completion menu / history filtered by what you typed |
 | `Ctrl+Shift+P` | Command palette |
 | `F1` | Shortcut list |
 
 Mouse, in the sidebar and in Jump to folder: click = enter · `Ctrl`+click or middle-click = new tab · `Shift`+click = split right · `Alt`+click = split down · right-click = menu.
+
+## Suggestions and syntax colors
+
+![Suggestions and syntax colors](docs/suggestions.png)
+
+Trantor turns on the line-editing features that your shell already has and styles them in Yaru colors:
+
+| | PowerShell 7 | Windows PowerShell 5.1 | Git Bash / WSL |
+|---|---|---|---|
+| Grey inline suggestion from history | ✓ | with PSReadLine 2.1+ ¹ | — ² |
+| Tab completion menu | ✓ | ✓ | ✓ |
+| History search filtered by what you typed (↑/↓) | ✓ | ✓ | ✓ |
+| Syntax colors while typing | ✓ | ✓ | — ² |
+
+Keys: **→** or **End** accepts the suggestion, **Ctrl+→** accepts one word, **Tab / Shift+Tab** moves through the completion menu, **F2** switches between inline and list suggestions (PowerShell 7).
+
+Colors: commands `#389AFE` · parameters, variables and types `#58C7F5` · strings `#F99B11` · numbers `#A597EC` · comments and operators in grey · errors `#FF7A71`. They are derived from the official [Yaru](https://github.com/ubuntu/yaru) accent palette and kept to a few tones on purpose.
+
+¹ Update it with `Install-Module PSReadLine -Scope CurrentUser -Force`.
+² Bash has no built-in inline suggestions or highlighting: install [ble.sh](https://github.com/akinomyoga/ble.sh) to get them. For cmd, [Clink](https://github.com/chrisant996/clink) adds both.
+
+These settings are applied after your PowerShell profile, so they override your own PSReadLine colors and key bindings. If you prefer your setup, turn off **Suggerimenti e colori nella shell** in the ☰ menu or the command palette (applies to new panes).
 
 ## How the sidebar knows your folder
 

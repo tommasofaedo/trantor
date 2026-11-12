@@ -40,6 +40,7 @@ const DEFAULT_CONFIG = {
   sidebarWidth: 270,
   showHidden: false,
   restoreSession: true,
+  shellEnhancements: true,
   bookmarks: [],
   history: {}, // path -> { count, last }
   session: null,
@@ -113,25 +114,114 @@ function detectProfiles() {
 // Integrazione shell: ogni prompt emette OSC 9;9 con la cartella corrente,
 // così la barra laterale segue sempre la directory del pannello attivo.
 // ---------------------------------------------------------------------------
-function psIntegrationScript() {
-  return [
-    '$global:__ytOrigPrompt = $function:prompt',
+
+// Colori della riga di comando in stile Yaru Dark (accento blu).
+// Fonti: github.com/ubuntu/yaru — accento blu #0073E5 schiarito per lo sfondo
+// scuro (#389AFE), warning $yellow #F99B11, accento "purple" #7764D8 schiarito,
+// errore #FF7A71, testo attenuato. Pochi toni, ognuno con un ruolo preciso.
+const SYNTAX = {
+  command: '56;154;254',      // #389AFE  comandi e cmdlet
+  parameter: '88;199;245',    // #58C7F5  -Parametri, $variabili, [Tipi]
+  string: '249;155;17',       // #F99B11  'stringhe'
+  number: '165;151;236',      // #A597EC  numeri
+  operator: '156;156;156',    // #9C9C9C  operatori e punteggiatura
+  comment: '122;122;122',     // #7A7A7A  # commenti
+  text: '247;247;247',        // #F7F7F7  testo normale
+  error: '255;122;113',       // #FF7A71  errori di sintassi
+  ghost: '108;108;108',       // #6C6C6C  suggerimento in linea
+  selBg: '35;57;80'           // #233950  selezione (accent-sub)
+};
+
+function psIntegrationScript(enhance) {
+  const lines = [
+    '$global:__trOrigPrompt = $function:prompt',
     'function global:prompt {',
     '  $loc = $executionContext.SessionState.Path.CurrentLocation',
     '  $osc = ""',
     '  if ($loc.Provider.Name -eq "FileSystem") { $osc = "$([char]27)]9;9;`"$($loc.ProviderPath)`"$([char]7)" }',
-    '  $orig = if ($global:__ytOrigPrompt) { & $global:__ytOrigPrompt } else { "PS $($loc)> " }',
+    '  $orig = if ($global:__trOrigPrompt) { & $global:__trOrigPrompt } else { "PS $($loc)> " }',
     '  return $osc + $orig',
     '}'
-  ].join("\n");
+  ];
+  if (enhance) {
+    const fg = (rgb, style = '') => `"$e[${style}38;2;${rgb}m"`;
+    lines.push(
+      '$__trRL = Get-Module PSReadLine',
+      'if ($__trRL) {',
+      '  $e = [char]27',
+      // Colori: chiavi supportate già da PSReadLine 2.0 (Windows PowerShell 5.1)
+      '  try { Set-PSReadLineOption -ErrorAction Stop -Colors @{',
+      `    Command = ${fg(SYNTAX.command)}; Keyword = ${fg(SYNTAX.command, '1;')}`,
+      `    Parameter = ${fg(SYNTAX.parameter)}; Variable = ${fg(SYNTAX.parameter)}; Type = ${fg(SYNTAX.parameter)}`,
+      `    String = ${fg(SYNTAX.string)}; Number = ${fg(SYNTAX.number)}`,
+      `    Operator = ${fg(SYNTAX.operator)}; Comment = ${fg(SYNTAX.comment, '3;')}`,
+      `    Member = ${fg(SYNTAX.text)}; Default = ${fg(SYNTAX.text)}; Error = ${fg(SYNTAX.error)}`,
+      `    Emphasis = ${fg(SYNTAX.command, '1;')}; Selection = "$e[48;2;${SYNTAX.selBg}m"`,
+      '  } } catch {}',
+      // Suggerimenti in linea (PSReadLine 2.1+) e vista a elenco (2.2+)
+      `  try { Set-PSReadLineOption -ErrorAction Stop -Colors @{ InlinePrediction = ${fg(SYNTAX.ghost)} } } catch {}`,
+      `  try { Set-PSReadLineOption -ErrorAction Stop -Colors @{ ListPrediction = ${fg(SYNTAX.command)}; ListPredictionSelected = "$e[48;2;${SYNTAX.selBg}m" } } catch {}`,
+      '  if ($__trRL.Version -ge [version]"2.1.0") {',
+      '    try { Set-PSReadLineOption -ErrorAction Stop -PredictionSource HistoryAndPlugin } catch { try { Set-PSReadLineOption -ErrorAction Stop -PredictionSource History } catch {} }',
+      '    try { Set-PSReadLineOption -ErrorAction Stop -PredictionViewStyle InlineView } catch {}',
+      '  }',
+      // Tab = menu di completamento; frecce = cronologia filtrata da ciò che hai scritto
+      '  try {',
+      '    Set-PSReadLineOption -HistorySearchCursorMovesToEnd',
+      '    Set-PSReadLineKeyHandler -Key Tab -Function MenuComplete',
+      '    Set-PSReadLineKeyHandler -Key Shift+Tab -Function TabCompletePrevious',
+      '    Set-PSReadLineKeyHandler -Key UpArrow -Function HistorySearchBackward',
+      '    Set-PSReadLineKeyHandler -Key DownArrow -Function HistorySearchForward',
+      '    Set-PSReadLineKeyHandler -Key Ctrl+RightArrow -Function ForwardWord',
+      '  } catch {}',
+      '}',
+      // PowerShell 7.2+: colori dell'output (intestazioni tabelle, cartelle, errori)
+      'if ($PSStyle) { try {',
+      '  $e = [char]27',
+      `  $PSStyle.Formatting.TableHeader = ${fg(SYNTAX.command, '1;')}`,
+      `  $PSStyle.Formatting.CustomTableHeaderLabel = ${fg(SYNTAX.command, '1;3;')}`,
+      `  $PSStyle.Formatting.FormatAccent = ${fg(SYNTAX.command, '1;')}`,
+      `  $PSStyle.Formatting.ErrorAccent = ${fg(SYNTAX.parameter, '1;')}`,
+      `  $PSStyle.Formatting.Error = ${fg(SYNTAX.error)}`,
+      `  $PSStyle.Formatting.Warning = ${fg(SYNTAX.string)}`,
+      `  $PSStyle.Formatting.Verbose = ${fg(SYNTAX.parameter)}`,
+      `  $PSStyle.Formatting.Debug = ${fg(SYNTAX.number)}`,
+      `  $PSStyle.FileInfo.Directory = ${fg(SYNTAX.command, '1;')}`,
+      `  $PSStyle.FileInfo.SymbolicLink = ${fg(SYNTAX.parameter)}`,
+      `  $PSStyle.FileInfo.Executable = ${fg(SYNTAX.number)}`,
+      `  $PSStyle.Progress.Style = ${fg(SYNTAX.command)}`,
+      '} catch {} }',
+      'Remove-Variable __trRL, e -ErrorAction SilentlyContinue'
+    );
+  }
+  return lines.join('\n');
 }
 
-function buildSpawn(profile, cwd) {
+// Readline (Git Bash, WSL): completamento a menu colorato e ricerca nella cronologia
+const BASH_INIT = [
+  "bind 'set colored-completion-prefix on'",
+  "bind 'set colored-stats on'",
+  "bind 'set show-all-if-ambiguous on'",
+  "bind 'set completion-ignore-case on'",
+  "bind 'set menu-complete-display-prefix on'",
+  "bind 'TAB: menu-complete'",
+  "bind '\"\\e[Z\": menu-complete-backward'",
+  "bind '\"\\e[A\": history-search-backward'",
+  "bind '\"\\e[B\": history-search-forward'"
+].join('\n');
+
+function bashPromptCommand(pathExpr, enhance) {
+  const osc = `printf "\\033]9;9;\\"%s\\"\\007" "${pathExpr}"`;
+  return enhance ? `[ -z "$__TR_INIT" ] && { __TR_INIT=1; eval "$TRANTOR_INIT"; }; ${osc}` : osc;
+}
+
+function buildSpawn(profile, cwd, enhance) {
   const env = { ...process.env, TERM_PROGRAM: 'Trantor', COLORTERM: 'truecolor' };
+  if (enhance) env.TRANTOR_INIT = BASH_INIT;
   let args = [];
   switch (profile.kind) {
     case 'powershell': {
-      const encoded = Buffer.from(psIntegrationScript(), 'utf16le').toString('base64');
+      const encoded = Buffer.from(psIntegrationScript(enhance), 'utf16le').toString('base64');
       args = ['-NoLogo', '-NoExit', '-EncodedCommand', encoded];
       break;
     }
@@ -139,17 +229,17 @@ function buildSpawn(profile, cwd) {
       env.PROMPT = '$e]9;9;$P$e\\$P$G';
       break;
     case 'gitbash':
-      env.PROMPT_COMMAND = 'printf "\\033]9;9;\\"%s\\"\\007" "$(cygpath -w "$PWD")"' + (process.env.PROMPT_COMMAND ? ';' + process.env.PROMPT_COMMAND : '');
+      env.PROMPT_COMMAND = bashPromptCommand('$(cygpath -w "$PWD")', enhance) + (process.env.PROMPT_COMMAND ? ';' + process.env.PROMPT_COMMAND : '');
       env.CHERE_INVOKING = '1';
       args = ['--login', '-i'];
       break;
     case 'wsl':
-      env.YT_PC = 'printf "\\033]9;9;\\"%s\\"\\007" "$(wslpath -w "$PWD")"';
-      env.WSLENV = (process.env.WSLENV ? process.env.WSLENV + ':' : '') + 'YT_PC/u';
-      args = ['--cd', cwd, '--exec', 'bash', '-c', 'export PROMPT_COMMAND="$YT_PC${PROMPT_COMMAND:+;$PROMPT_COMMAND}"; exec bash -i'];
+      env.TR_PC = bashPromptCommand('$(wslpath -w "$PWD")', enhance);
+      env.WSLENV = (process.env.WSLENV ? process.env.WSLENV + ':' : '') + 'TR_PC/u' + (enhance ? ':TRANTOR_INIT/u' : '');
+      args = ['--cd', cwd, '--exec', 'bash', '-c', 'export PROMPT_COMMAND="$TR_PC${PROMPT_COMMAND:+;$PROMPT_COMMAND}"; exec bash -i'];
       break;
     case 'bash':
-      env.PROMPT_COMMAND = 'printf "\\033]9;9;\\"%s\\"\\007" "$PWD"';
+      env.PROMPT_COMMAND = bashPromptCommand('$PWD', enhance);
       break;
   }
   return { file: profile.exe, args, env };
@@ -250,10 +340,10 @@ ipcMain.handle('app:info', () => ({
 // ---------------------------------------------------------------------------
 // IPC — pseudo-terminali
 // ---------------------------------------------------------------------------
-ipcMain.handle('pty:spawn', (_e, { id, profile, cwd, cols, rows }) => {
+ipcMain.handle('pty:spawn', (_e, { id, profile, cwd, cols, rows, enhance }) => {
   let startDir = cwd;
   try { if (!startDir || !fs.statSync(startDir).isDirectory()) startDir = os.homedir(); } catch { startDir = os.homedir(); }
-  const { file, args, env } = buildSpawn(profile, startDir);
+  const { file, args, env } = buildSpawn(profile, startDir, enhance !== false);
   const proc = pty.spawn(file, args, {
     name: 'xterm-256color',
     cols: cols || 100,

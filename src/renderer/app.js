@@ -6,12 +6,14 @@ const $ = (sel) => document.querySelector(sel);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
 
-// Palette ANSI del terminale di Ubuntu (gnome-terminal, profilo Ubuntu), sfondo Yaru Dark
+// Palette ANSI coerente con Yaru Dark (github.com/ubuntu/yaru):
+// accenti ufficiali blue #0073E5, purple #7764D8, red #DA3450, yellow #C88800,
+// prussiangreen #308280; varianti chiare per lo sfondo scuro; verdi del profilo Ubuntu.
 const TERM_THEME = {
   background: '#1D1D1D', foreground: '#F7F7F7', cursor: '#F7F7F7', cursorAccent: '#1D1D1D',
   selectionBackground: 'rgba(0, 115, 229, 0.45)', selectionInactiveBackground: 'rgba(0, 115, 229, 0.25)',
-  black: '#171421', red: '#C01C28', green: '#26A269', yellow: '#A2734C', blue: '#12488B', magenta: '#A347BA', cyan: '#2AA1B3', white: '#D0CFCC',
-  brightBlack: '#5E5C64', brightRed: '#F66151', brightGreen: '#33DA7A', brightYellow: '#E9AD0C', brightBlue: '#2A7BDE', brightMagenta: '#C061CB', brightCyan: '#33C7DE', brightWhite: '#FFFFFF'
+  black: '#3D3D3D', red: '#DA3450', green: '#26A269', yellow: '#C88800', blue: '#0073E5', magenta: '#7764D8', cyan: '#308280', white: '#CCCCCC',
+  brightBlack: '#878787', brightRed: '#FF7A71', brightGreen: '#33DA7A', brightYellow: '#F99B11', brightBlue: '#389AFE', brightMagenta: '#A597EC', brightCyan: '#58C7F5', brightWhite: '#FFFFFF'
 };
 
 const S = {
@@ -200,7 +202,7 @@ class Pane {
     }
     this.ro.observe(this.termEl);
     this.doFit();
-    const res = await window.yt.spawn({ id: this.id, profile: this.profile, cwd: this.cwd, cols: this.term.cols, rows: this.term.rows });
+    const res = await window.yt.spawn({ id: this.id, profile: this.profile, cwd: this.cwd, cols: this.term.cols, rows: this.term.rows, enhance: S.cfg.shellEnhancements !== false });
     this.alive = true;
     if (res && res.cwd) this.setCwd(res.cwd, true);
   }
@@ -939,6 +941,7 @@ function commands() {
     { label: 'Aumenta carattere', icon: 'plus', kbd: 'Ctrl+=', run: () => setFontSize(S.cfg.fontSize + 1) },
     { label: 'Riduci carattere', icon: 'minimize', kbd: 'Ctrl+-', run: () => setFontSize(S.cfg.fontSize - 1) },
     { label: 'Carattere predefinito', icon: 'terminal', kbd: 'Ctrl+0', run: () => setFontSize(14) },
+    { label: `Suggerimenti e colori nella shell: ${S.cfg.shellEnhancements !== false ? 'attivo' : 'disattivo'}`, icon: 'command', run: toggleEnhancements },
     { label: `Ripristina sessione all’avvio: ${S.cfg.restoreSession ? 'attivo' : 'disattivo'}`, icon: 'clock', run: () => { S.cfg.restoreSession = !S.cfg.restoreSession; window.yt.saveConfig({ restoreSession: S.cfg.restoreSession }); toast(`Ripristino sessione ${S.cfg.restoreSession ? 'attivato' : 'disattivato'}`); } },
     ...S.profiles.map((pr) => ({ label: `Shell predefinita: ${pr.name}`, icon: pr.icon, tag: defaultProfile().id === pr.id ? 'attuale' : null, run: () => { S.cfg.defaultProfile = pr.id; window.yt.saveConfig({ defaultProfile: pr.id }); toast(`${pr.name} è ora la shell predefinita`); } })),
     { label: 'Scorciatoie da tastiera', icon: 'command', kbd: 'F1', run: showShortcuts },
@@ -974,6 +977,11 @@ function showShortcuts() {
     ['Ctrl+Tab / Ctrl+1…9', 'Cambia scheda'],
     ['Ctrl+C (con selezione) / Ctrl+V', 'Copia / incolla'],
     ['Ctrl+Shift+F', 'Cerca nel terminale'],
+    ['→ / Fine', 'Accetta il suggerimento grigio (PowerShell)'],
+    ['Ctrl+→', 'Accetta il suggerimento una parola alla volta'],
+    ['Tab / Shift+Tab', 'Menu di completamento'],
+    ['↑ / ↓', 'Cronologia filtrata da ciò che hai già scritto'],
+    ['F2', 'Suggerimenti in linea ↔ elenco (PowerShell 7)'],
     ['Ctrl+Shift+P', 'Palette comandi'],
     ['Ctrl+B', 'Mostra/nascondi barra cartelle']
   ];
@@ -1062,6 +1070,12 @@ function setFontSize(n) {
   S.cfg.fontSize = n;
   for (const p of S.panes.values()) { p.term.options.fontSize = n; p.doFit(); }
   window.yt.saveConfig({ fontSize: n });
+}
+
+function toggleEnhancements() {
+  S.cfg.shellEnhancements = S.cfg.shellEnhancements === false;
+  window.yt.saveConfig({ shellEnhancements: S.cfg.shellEnhancements });
+  toast(`Suggerimenti e colori ${S.cfg.shellEnhancements ? 'attivi' : 'disattivati'} nei nuovi pannelli`);
 }
 
 async function goUp() {
@@ -1175,6 +1189,7 @@ function setupHeaderbar() {
       { label: 'Salta a cartella', icon: 'jump', kbd: 'Ctrl+G', run: openJump },
       '-',
       { label: 'Mostra file nascosti', icon: 'eye', check: S.cfg.showHidden, run: toggleHidden },
+      { label: 'Suggerimenti e colori nella shell', icon: 'command', check: S.cfg.shellEnhancements !== false, run: toggleEnhancements },
       { label: 'Ripristina sessione all’avvio', icon: 'clock', check: S.cfg.restoreSession, run: () => { S.cfg.restoreSession = !S.cfg.restoreSession; window.yt.saveConfig({ restoreSession: S.cfg.restoreSession }); } },
       '-',
       { label: 'Scorciatoie da tastiera', icon: 'command', kbd: 'F1', run: showShortcuts }

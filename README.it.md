@@ -13,6 +13,7 @@ Funzioni principali:
 - **Schede e pannelli divisi** stile tmux, ma usabili anche col mouse (pulsanti su ogni pannello, divisori trascinabili, doppio clic sul divisore = 50/50)
 - **Barra laterale cartelle** che segue sempre il pannello attivo: preferiti, recenti, unità, contenuto della cartella con filtro
 - **Salta a cartella** (`Ctrl+G`): ricerca fuzzy su preferiti, cartelle recenti (frecency, come `z`/`zoxide`), sottocartelle e unità
+- **Suggerimenti e colori dei comandi**: suggerimento grigio dalla cronologia, menu di completamento con Tab, colori per comandi, stringhe e numeri (PowerShell), in tonalità Yaru
 - **Palette comandi** (`Ctrl+Shift+P`) con tutte le azioni e le scorciatoie
 - Sessione (schede, pannelli, cartelle) **ripristinata all'avvio**
 - Shell rilevate in automatico: PowerShell 7, Windows PowerShell, Prompt dei comandi, Git Bash, WSL
@@ -72,6 +73,8 @@ Se mancano, l'app ripiega su Segoe UI e Cascadia Mono / Consolas.
 | `Ctrl+Shift+F` | Cerca nel terminale |
 | `Ctrl+B` | Mostra/nascondi barra cartelle |
 | `Ctrl+=`, `Ctrl+-`, `Ctrl+0`, `Ctrl+rotella` | Dimensione carattere |
+| `→` / `Ctrl+→` | Accetta il suggerimento / una parola |
+| `Tab` / `↑` `↓` | Menu di completamento / cronologia filtrata |
 | `Ctrl+Shift+P` | Palette comandi |
 | `F1` | Elenco scorciatoie |
 
@@ -80,6 +83,28 @@ clic = entra · `Ctrl`+clic o clic centrale = nuova scheda · `Shift`+clic = pan
 Puoi anche **trascinare una cartella da Esplora file** dentro un pannello per entrarci (un file trascinato inserisce il suo percorso).
 
 Nel campo filtro della barra laterale puoi scrivere un percorso (`D:\Progetti`, `..`, `~\Documents`) e premere Invio; `Backspace` a campo vuoto sale di una cartella.
+
+## Suggerimenti e colori dei comandi
+
+![Suggestions and syntax colors](docs/suggestions.png)
+
+Trantor attiva le funzioni di modifica della riga che la shell ha già e le colora in stile Yaru:
+
+| | PowerShell 7 | Windows PowerShell 5.1 | Git Bash / WSL |
+|---|---|---|---|
+| Suggerimento grigio dalla cronologia | ✓ | con PSReadLine 2.1+ ¹ | — ² |
+| Menu di completamento con Tab | ✓ | ✓ | ✓ |
+| Cronologia filtrata da ciò che hai scritto (↑/↓) | ✓ | ✓ | ✓ |
+| Colori della sintassi mentre scrivi | ✓ | ✓ | — ² |
+
+Tasti: **→** o **Fine** accetta il suggerimento, **Ctrl+→** ne accetta una parola, **Tab / Shift+Tab** scorre il menu di completamento, **F2** passa da suggerimento in linea a elenco (PowerShell 7).
+
+Colori: comandi `#389AFE` · parametri, variabili e tipi `#58C7F5` · stringhe `#F99B11` · numeri `#A597EC` · commenti e operatori in grigio · errori `#FF7A71`. Derivano dalla palette ufficiale degli accenti di [Yaru](https://github.com/ubuntu/yaru) e sono volutamente pochi.
+
+¹ Per aggiornarlo: `Install-Module PSReadLine -Scope CurrentUser -Force`.
+² Bash non ha suggerimenti in linea né colori della sintassi: si ottengono installando [ble.sh](https://github.com/akinomyoga/ble.sh). Per cmd c'è [Clink](https://github.com/chrisant996/clink).
+
+Queste impostazioni vengono applicate dopo il tuo profilo PowerShell, quindi sostituiscono i tuoi colori e tasti di PSReadLine. Se preferisci i tuoi, disattiva **Suggerimenti e colori nella shell** dal menu ☰ o dalla palette comandi (vale per i nuovi pannelli).
 
 ## Come fa a sapere in che cartella sei
 
