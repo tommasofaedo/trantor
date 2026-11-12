@@ -34,11 +34,9 @@ Download the installer or the portable `.exe` from [Releases](../../releases).
 
 ## Run from source
 
-Requires [Node.js](https://nodejs.org) 20+.
+Requires [Node.js](https://nodejs.org) 20+. Clone the repository (green **Code** button on GitHub, or download it as ZIP), then from its folder:
 
 ```powershell
-git clone https://github.com/tommasofaedo/trantor.git
-cd trantor
 npm install
 npm start
 ```

@@ -332,7 +332,6 @@ ipcMain.handle('app:info', () => ({
   home: os.homedir(),
   sep: path.sep,
   version: app.getVersion(),
-  homepage: require('../package.json').homepage,
   startDir: pendingDir,
   profiles: detectProfiles()
 }));

@@ -26,6 +26,6 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: false
       - name: Upload to the release
         shell: bash
-        run: gh release upload "${{ github.event.release.tag_name }}" dist/*.exe dist/latest.yml --clobber
+        run: gh release upload "${{ github.event.release.tag_name }}" dist/*.exe --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

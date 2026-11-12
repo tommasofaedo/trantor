@@ -945,7 +945,7 @@ function commands() {
     { label: `Ripristina sessione all’avvio: ${S.cfg.restoreSession ? 'attivo' : 'disattivo'}`, icon: 'clock', run: () => { S.cfg.restoreSession = !S.cfg.restoreSession; window.yt.saveConfig({ restoreSession: S.cfg.restoreSession }); toast(`Ripristino sessione ${S.cfg.restoreSession ? 'attivato' : 'disattivato'}`); } },
     ...S.profiles.map((pr) => ({ label: `Shell predefinita: ${pr.name}`, icon: pr.icon, tag: defaultProfile().id === pr.id ? 'attuale' : null, run: () => { S.cfg.defaultProfile = pr.id; window.yt.saveConfig({ defaultProfile: pr.id }); toast(`${pr.name} è ora la shell predefinita`); } })),
     { label: 'Scorciatoie da tastiera', icon: 'command', kbd: 'F1', run: showShortcuts },
-    { label: `Informazioni su Trantor ${S.info.version || ''}`, icon: 'terminal', run: () => window.yt.openUrl(S.info.homepage) }
+    { label: `Informazioni su Trantor ${S.info.version || ''}`, icon: 'terminal', run: () => toast(`Trantor ${S.info.version || ''} · licenza MIT`) }
   ];
   return list;
 }
