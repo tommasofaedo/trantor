@@ -30,7 +30,7 @@ Windows 10 and 11, 64-bit. Nothing else to install. Older versions and release n
 ## Features
 
 - **Tabs and split panes** like tmux, but mouse-friendly: every pane has split / zoom / close buttons, dividers can be dragged (double-click resets to 50/50).
-- **Folder sidebar that follows the active pane**: clickable breadcrumb, bookmarks, frecency-ranked recent folders, drives and the current folder's content with an instant filter.
+- **Folder sidebar that follows the active pane**, and lets you browse freely without moving the terminal: clickable breadcrumb, bookmarks, frecency-ranked recent folders, drives and the current folder's content with an instant filter.
 - **Jump to folder** (`Ctrl+G`): fuzzy search over bookmarks, recent folders (like `z`/`zoxide`), subfolders and drives. Open in the current pane, a new tab or a new split.
 - **Command palette** (`Ctrl+Shift+P`) with every action and its shortcut.
 - **Session restore**: tabs, splits and folders come back when you reopen the app.
@@ -76,7 +76,9 @@ Windows 10 and 11, 64-bit. Nothing else to install. Older versions and release n
 | `Ctrl+Shift+P` | Command palette |
 | `F1` | Shortcut list |
 
-Mouse, in the sidebar and in Jump to folder: click = enter · `Ctrl`+click or middle-click = new tab · `Shift`+click = split right · `Alt`+click = split down · right-click = menu.
+**Sidebar**: click a folder to browse it **without moving the terminal**; double-click (or right-click → *Apri nel terminale*) to open it in the terminal too. While you browse, a bar shows where the terminal is, with **Apri qui** and **Torna**. `Ctrl`+click or middle-click = new tab · `Shift`+click = split right · `Alt`+click = split down. Prefer the old behaviour? Turn on *Un clic su una cartella sposta il terminale* in the ☰ menu.
+
+**Jump to folder** moves the terminal directly: Enter = current pane · `Ctrl`+Enter = new tab · `Shift`+Enter = split right · `Alt`+Enter = split down.
 
 ## Network devices
 

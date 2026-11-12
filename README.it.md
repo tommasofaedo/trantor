@@ -11,7 +11,7 @@ Il nome viene da **Trantor**, la capitale-pianeta del ciclo della *Fondazione* d
 Funzioni principali:
 
 - **Schede e pannelli divisi** stile tmux, ma usabili anche col mouse (pulsanti su ogni pannello, divisori trascinabili, doppio clic sul divisore = 50/50)
-- **Barra laterale cartelle** che segue sempre il pannello attivo: preferiti, recenti, unità, contenuto della cartella con filtro
+- **Barra laterale cartelle** che segue il pannello attivo e permette di esplorare liberamente senza spostare il terminale: preferiti, recenti, unità, contenuto della cartella con filtro
 - **Salta a cartella** (`Ctrl+G`): ricerca fuzzy su preferiti, cartelle recenti (frecency, come `z`/`zoxide`), sottocartelle e unità
 - **Dispositivi in rete**: trova PLC, pannelli, router e server nella rete locale, riconosce Modbus, S7, EtherNet/IP, OPC UA, SSH e interfacce web, e legge i registri Modbus (solo lettura)
 - **Trasferire file via SSH**: trascina i file su un pannello remoto per caricarli, trascina fuori il nome di un file per scaricarlo
@@ -73,8 +73,9 @@ Se mancano, l'app ripiega su Segoe UI e Cascadia Mono / Consolas.
 | `Ctrl+Shift+P` | Palette comandi |
 | `F1` | Elenco scorciatoie |
 
-**Con il mouse**, in barra laterale e in "Salta a cartella":
-clic = entra · `Ctrl`+clic o clic centrale = nuova scheda · `Shift`+clic = pannello a destra · `Alt`+clic = pannello sotto · tasto destro = menu.
+**Barra laterale**: un clic su una cartella la apre **solo nella barra laterale**, il terminale resta dov'è; doppio clic (oppure tasto destro → *Apri nel terminale*) la apre anche nel terminale. Mentre esplori, una barra mostra dove si trova il terminale, con **Apri qui** e **Torna**. `Ctrl`+clic o clic centrale = nuova scheda · `Shift`+clic = pannello a destra · `Alt`+clic = pannello sotto. Preferisci il comportamento di prima? Attiva *Un clic su una cartella sposta il terminale* nel menu ☰.
+
+**Salta a cartella** sposta direttamente il terminale: Invio = pannello corrente · `Ctrl`+Invio = nuova scheda · `Shift`+Invio = pannello a destra · `Alt`+Invio = pannello sotto.
 Puoi anche **trascinare una cartella da Esplora file** dentro un pannello per entrarci (un file trascinato inserisce il suo percorso).
 
 Nel campo filtro della barra laterale puoi scrivere un percorso (`D:\Progetti`, `..`, `~\Documents`) e premere Invio; `Backspace` a campo vuoto sale di una cartella.

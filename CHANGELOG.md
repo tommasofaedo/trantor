@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.5.0 — 2026-11-12
+
+- **Browse folders freely in the sidebar**: a click on a folder opens it only in the sidebar, the terminal stays where it is. Double-click (or Enter in the filter, or right-click → "Apri nel terminale") moves the terminal there too. While you browse, a bar shows where the terminal is, with "Apri qui" and "Torna"; `cd` in the terminal doesn't pull the sidebar away. → in the filter enters the selected folder in the sidebar only
+- Option "Un clic su una cartella sposta il terminale" (☰ menu) to keep the previous behaviour
+
 ## 1.4.0 — 2026-11-12
 
 - **Drag files between local and remote panes**: a pane becomes remote when you run `ssh` in it (port, key, jump host and `-o` options are understood). Drop files or folders from Explorer or from the sidebar onto it to upload them; select a file name in the remote pane and drag the "Scarica" label onto a local pane or a sidebar folder (or click it) to download. Transfers run `scp` in a pane below, so password prompts work, and the pane closes by itself when the transfer succeeds

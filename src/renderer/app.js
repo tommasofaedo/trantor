@@ -588,12 +588,62 @@ window.addEventListener('beforeunload', saveSessionNow);
 // =========================================================================
 // Barra laterale: navigazione cartelle
 // =========================================================================
+// La barra laterale segue la cartella del pannello attivo, finché non la usi per esplorare:
+// da quel momento resta dove sei e la barra "Terminale in …" permette di tornare o di aprire lì il terminale.
 async function syncSidebar(force) {
   const p = focusedPane();
   if (!p) return;
-  if (!force && samePath(S.sidebarDir, p.cwd)) { renderLocation(); return; }
-  S.sidebarDir = p.cwd;
+  if (S.browsing && samePath(p.cwd, S.sidebarDir)) S.browsing = false;
+  if (S.browsing && !force) { renderFollowBar(); return; }
+  S.browsing = false;
+  await showSidebarDir(p.cwd, force);
+}
+
+// Esplora una cartella nella barra laterale senza spostare il terminale
+async function browseTo(dir) {
+  const p = focusedPane();
+  S.browsing = !(p && samePath(p.cwd, dir));
+  await showSidebarDir(dir, true);
+}
+function followTerminal() { S.browsing = false; syncSidebar(true); }
+
+// Clic su una cartella nella barra laterale: esplora (o, con l'opzione attiva, sposta il terminale)
+function sidebarOpen(dir, e) {
+  const mode = e ? clickMode(e) : 'cd';
+  if (mode !== 'cd' || S.cfg.sidebarMovesTerminal) return openDir(dir, mode);
+  S.lastBrowse = { dir, t: Date.now() };
+  browseTo(dir);
+}
+// Doppio clic: il primo clic ha già aperto la cartella nella barra, ora la apre anche il terminale
+function sidebarDoubleClick() {
+  if (S.cfg.sidebarMovesTerminal || !S.lastBrowse || Date.now() - S.lastBrowse.t > 700) return;
+  openDir(S.lastBrowse.dir, 'cd');
+  S.lastBrowse = null;
+}
+
+function renderFollowBar() {
+  const bar = $('#sb-follow');
+  const p = focusedPane();
+  const show = !!(S.browsing && p);
+  bar.classList.toggle('hidden', !show);
+  $('#sb-term').classList.toggle('hidden', !show);
+  if (!show) return;
+  bar.innerHTML = `<span class="fb-text" title="${esc(p.cwd)}">${icon('terminal')}Terminale in <b>${esc(baseName(p.cwd) || p.cwd)}</b></span>` +
+    `<button data-act="here" title="Porta il terminale in ${esc(S.sidebarDir)} (doppio clic su una cartella fa lo stesso)">Apri qui</button>` +
+    `<button data-act="back" title="Torna alla cartella del terminale">Torna</button>`;
+}
+
+function toggleSidebarMovesTerminal() {
+  S.cfg.sidebarMovesTerminal = !S.cfg.sidebarMovesTerminal;
+  window.yt.saveConfig({ sidebarMovesTerminal: S.cfg.sidebarMovesTerminal });
+  toast(S.cfg.sidebarMovesTerminal ? 'Un clic su una cartella sposta anche il terminale' : 'Un clic su una cartella la apre solo nella barra laterale');
+}
+
+async function showSidebarDir(dir, force) {
+  if (!force && samePath(S.sidebarDir, dir)) { renderLocation(); renderFollowBar(); return; }
+  S.sidebarDir = dir;
   renderLocation();
+  renderFollowBar();
   S.project = null; S.gitIndex = null;
   renderDirCommands();
   await loadSidebarList();
@@ -694,12 +744,14 @@ function openDir(dir, mode = 'cd') {
   if (mode === 'tab' && layoutFor(dir)) return openLayout(layoutFor(dir));
   if (mode === 'tab' || !p) return newTab(p ? p.profile : null, dir);
   if (mode === 'h' || mode === 'v') return splitPane(p.id, mode, dir);
+  S.browsing = false;
   p.cd(dir);
 }
 
 function dirMenu(path, x, y) {
   showMenu([
-    { label: 'Entra qui', icon: 'jump', run: () => openDir(path, 'cd') },
+    { label: 'Apri nel terminale', icon: 'terminal', kbd: 'Doppio clic', run: () => openDir(path, 'cd') },
+    ...(samePath(path, S.sidebarDir) ? [] : [{ label: 'Sfoglia', icon: 'folder', kbd: 'Clic', run: () => browseTo(path) }]),
     { label: 'Apri in nuova scheda', icon: 'plus', kbd: 'Ctrl+clic', run: () => openDir(path, 'tab') },
     { label: 'Apri in un pannello a destra', icon: 'splitH', kbd: 'Shift+clic', run: () => openDir(path, 'h') },
     { label: 'Apri in un pannello sotto', icon: 'splitV', kbd: 'Alt+clic', run: () => openDir(path, 'v') },
@@ -717,11 +769,19 @@ function setupSidebar() {
   $('.sb-search-icon').innerHTML = icon('search');
   updateHiddenBtn();
 
-  $('#sb-up').onclick = async () => { const par = await window.yt.parent(S.sidebarDir); if (!samePath(par, S.sidebarDir)) openDir(par); };
+  $('#sb-up').onclick = async () => { const par = await window.yt.parent(S.sidebarDir); if (!samePath(par, S.sidebarDir)) sidebarOpen(par); };
+  $('#sb-term').innerHTML = icon('terminal');
+  $('#sb-term').onclick = () => openDir(S.sidebarDir, 'cd');
+  $('#sb-follow').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.act === 'here') openDir(S.sidebarDir, 'cd'); else followTerminal();
+  });
+  $('#sb-crumbs').addEventListener('dblclick', sidebarDoubleClick);
+  $('#sb-crumbs').addEventListener('contextmenu', (e) => { const c = e.target.closest('.crumb'); if (c) { e.preventDefault(); dirMenu(c.dataset.path, e.clientX, e.clientY); } });
   $('#sb-star').onclick = () => toggleBookmark(S.sidebarDir);
   $('#sb-explorer').onclick = () => window.yt.openPath(S.sidebarDir);
   $('#sb-hidden').onclick = () => toggleHidden();
-  $('#sb-crumbs').addEventListener('click', (e) => { const c = e.target.closest('.crumb'); if (c) openDir(c.dataset.path, clickMode(e)); });
+  $('#sb-crumbs').addEventListener('click', (e) => { const c = e.target.closest('.crumb'); if (c) sidebarOpen(c.dataset.path, e); });
 
   const pathLists = ['#sb-bookmarks', '#sb-recent', '#sb-drives'];
   for (const sel of pathLists) {
@@ -729,8 +789,9 @@ function setupSidebar() {
     ul.addEventListener('click', (e) => {
       const rm = e.target.closest('.rm');
       if (rm) { e.stopPropagation(); toggleBookmark(rm.dataset.rm); return; }
-      const li = e.target.closest('li[data-path]'); if (li) openDir(li.dataset.path, clickMode(e));
+      const li = e.target.closest('li[data-path]'); if (li) sidebarOpen(li.dataset.path, e);
     });
+    ul.addEventListener('dblclick', (e) => { if (e.target.closest('li[data-path]') && !e.target.closest('.rm')) sidebarDoubleClick(); });
     ul.addEventListener('auxclick', (e) => { const li = e.target.closest('li[data-path]'); if (li && e.button === 1) openDir(li.dataset.path, 'tab'); });
     ul.addEventListener('contextmenu', (e) => { const li = e.target.closest('li[data-path]'); if (li) { e.preventDefault(); dirMenu(li.dataset.path, e.clientX, e.clientY); } });
   }
@@ -740,10 +801,11 @@ function setupSidebar() {
   list.addEventListener('click', (e) => {
     const li = e.target.closest('li'); if (!li) return;
     const en = entryAt(li); const full = joinPath(S.sidebarDir, en.name);
-    if (en.isDir) { clearSidebarFilter(); openDir(full, clickMode(e)); }
+    if (en.isDir) { clearSidebarFilter(); sidebarOpen(full, e); }
     else { S.sidebarSel = +li.dataset.i; renderSidebarList(); }
   });
   list.addEventListener('dblclick', (e) => {
+    if (!e.target.closest('li.file')) { sidebarDoubleClick(); return; }
     const li = e.target.closest('li.file'); if (!li) return;
     window.yt.openPath(joinPath(S.sidebarDir, entryAt(li).name));
   });
@@ -774,6 +836,11 @@ function setupSidebar() {
     else if (e.key === 'Enter') { e.preventDefault(); sidebarSubmit(e.ctrlKey ? 'tab' : e.shiftKey ? 'h' : e.altKey ? 'v' : 'cd'); }
     else if (e.key === 'Escape') { clearSidebarFilter(); focusedPane()?.term.focus(); }
     else if (e.key === 'Backspace' && !input.value) { $('#sb-up').click(); }
+    else if (e.key === 'ArrowRight' && input.selectionStart === input.value.length) {
+      const list = filteredEntries();
+      const en = list[S.sidebarSel >= 0 ? S.sidebarSel : list.findIndex((x) => x.isDir)];
+      if (en && en.isDir) { e.preventDefault(); const full = joinPath(S.sidebarDir, en.name); clearSidebarFilter(); browseTo(full); }
+    }
   });
 
   // Ridimensionamento sidebar
@@ -989,6 +1056,8 @@ function commands() {
     { label: 'Aumenta carattere', icon: 'plus', kbd: 'Ctrl+=', run: () => setFontSize(S.cfg.fontSize + 1) },
     { label: 'Riduci carattere', icon: 'minimize', kbd: 'Ctrl+-', run: () => setFontSize(S.cfg.fontSize - 1) },
     { label: 'Carattere predefinito', icon: 'terminal', kbd: 'Ctrl+0', run: () => setFontSize(14) },
+    { label: `Un clic su una cartella sposta il terminale: ${S.cfg.sidebarMovesTerminal ? 'sì' : 'no'}`, icon: 'folder', run: toggleSidebarMovesTerminal },
+    ...(S.browsing ? [{ label: 'Barra laterale: torna alla cartella del terminale', icon: 'terminal', run: followTerminal }, { label: 'Apri nel terminale la cartella della barra laterale', icon: 'terminal', run: () => openDir(S.sidebarDir, 'cd') }] : []),
     { label: `Suggerimenti e colori nella shell: ${S.cfg.shellEnhancements !== false ? 'attivo' : 'disattivo'}`, icon: 'command', run: toggleEnhancements },
     { label: `Ripristina sessione all’avvio: ${S.cfg.restoreSession ? 'attivo' : 'disattivo'}`, icon: 'clock', run: () => { S.cfg.restoreSession = !S.cfg.restoreSession; window.yt.saveConfig({ restoreSession: S.cfg.restoreSession }); toast(`Ripristino sessione ${S.cfg.restoreSession ? 'attivato' : 'disattivato'}`); } },
     ...S.profiles.map((pr) => ({ label: `Shell predefinita: ${pr.name}`, icon: pr.icon, tag: defaultProfile().id === pr.id ? 'attuale' : null, run: () => { S.cfg.defaultProfile = pr.id; window.yt.saveConfig({ defaultProfile: pr.id }); toast(`${pr.name} è ora la shell predefinita`); } })),
@@ -1021,6 +1090,7 @@ function showShortcuts() {
     ['Ctrl+Shift+R', 'Azioni del progetto (npm, docker, make…)'],
     ['Ctrl+Shift+N', 'Dispositivi in rete'],
     ['Alt+Su', 'Vai alla cartella superiore'],
+    ['Clic / doppio clic', 'Barra laterale: esplora la cartella / aprila anche nel terminale'],
     ['Alt+1…9', 'Vai al preferito n°'],
     ['Ctrl+Shift+D / E', 'Dividi pannello a destra / in basso'],
     ['Alt+Frecce', 'Sposta il focus tra i pannelli'],
@@ -1254,6 +1324,7 @@ function setupHeaderbar() {
       { label: 'Salta a cartella', icon: 'jump', kbd: 'Ctrl+G', run: openJump },
       '-',
       { label: 'Mostra file nascosti', icon: 'eye', check: S.cfg.showHidden, run: toggleHidden },
+      { label: 'Un clic su una cartella sposta il terminale', icon: 'folder', check: !!S.cfg.sidebarMovesTerminal, run: toggleSidebarMovesTerminal },
       { label: 'Suggerimenti e colori nella shell', icon: 'command', check: S.cfg.shellEnhancements !== false, run: toggleEnhancements },
       { label: 'Ripristina sessione all’avvio', icon: 'clock', check: S.cfg.restoreSession, run: () => { S.cfg.restoreSession = !S.cfg.restoreSession; window.yt.saveConfig({ restoreSession: S.cfg.restoreSession }); } },
       '-',
