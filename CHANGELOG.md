@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.0 — 2026-11-12
+
+- **Per-folder command history**: every command is remembered together with the folder it ran in. The sidebar shows the ones used most in the current folder ("Usati qui"); Ctrl+H searches them, including parent folders of the project. Click inserts, ▶ runs, Shift+click runs in a new pane
+- **Project detection**: git, Node (npm/pnpm/yarn/bun scripts), Python (virtual env, requirements), Docker Compose, .NET, Make, Rust, Go. Ready-made actions in the sidebar and in Ctrl+Shift+R
+- **Git at a glance**: branch, number of changes and commits ahead/behind in the sidebar and in the pane header; modified and new files marked in the folder list
+- **Saved layouts per project**: save the panes of a tab (and the commands running in them, e.g. a dev server); open the project in a new tab to get them back
+- Optional automatic activation of the project's Python virtual environment
+
 ## 1.1.0 — 2026-11-12
 
 - Command suggestions while you type (PowerShell): grey inline prediction from history and plugins, accepted with → or word by word with Ctrl+→

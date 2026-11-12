@@ -36,6 +36,7 @@ Windows 10 and 11, 64-bit. Nothing else to install. Older versions and release n
 - **Session restore**: tabs, splits and folders come back when you reopen the app.
 - **Shells detected automatically**: PowerShell 7, Windows PowerShell, Command Prompt, Git Bash, WSL.
 - **Explorer integration**: "Open in Trantor" context-menu entry, drag a folder onto a pane to `cd` into it.
+- **Smart folders**: remembers the commands you run in each folder, recognizes projects (git, Node, Python, Docker, .NET…) with one-click actions, and restores saved pane layouts per project.
 - **Command suggestions and syntax colors**: grey inline suggestions from history, Tab completion menu, colors for commands, strings and numbers (PowerShell), all in Yaru tones.
 - **Yaru Dark theme** with the official Yaru blue accent (`#0073E5`), Ubuntu terminal palette, WebGL rendering.
 
@@ -49,6 +50,8 @@ Windows 10 and 11, 64-bit. Nothing else to install. Older versions and release n
 |---|---|
 | `Ctrl+G` | Jump to folder |
 | `Ctrl+Shift+L` | Filter the current folder in the sidebar |
+| `Ctrl+H` | Commands used in this folder |
+| `Ctrl+Shift+R` | Project actions |
 | `Alt+Up` | Parent folder (moves focus up when there are several panes) |
 | `Alt+1…9` | Go to bookmark 1…9 |
 | `Ctrl+Shift+S` | Bookmark / unbookmark the current folder |
@@ -69,6 +72,31 @@ Windows 10 and 11, 64-bit. Nothing else to install. Older versions and release n
 | `F1` | Shortcut list |
 
 Mouse, in the sidebar and in Jump to folder: click = enter · `Ctrl`+click or middle-click = new tab · `Shift`+click = split right · `Alt`+click = split down · right-click = menu.
+
+## Smart folders
+
+![Smart folders](docs/smart-folders.png)
+
+Trantor remembers what you do in each folder and recognizes what kind of project you are in.
+
+**Commands used here.** Every command is saved with the folder it ran in, how many times, when, and whether it succeeded. The sidebar shows the most used ones for the current folder; `Ctrl+H` searches all of them, including the parent folders of the project. Click to insert a command, ▶ or double-click to run it, Shift+click to run it in a new pane. Months later you open a project and immediately see how it was built, started or deployed.
+
+**Project card.** When the folder belongs to a project, the sidebar shows its name, git branch, changes and ready-made actions:
+
+| Detected from | Actions |
+|---|---|
+| `.git` | branch, changes, commits ahead/behind; modified files marked in the list |
+| `package.json` | npm / pnpm / yarn / bun scripts, install if `node_modules` is missing |
+| `pyproject.toml`, `requirements.txt` | activate the virtual env, install requirements, run `main.py`/`app.py`/`manage.py`, pytest |
+| `compose.yaml` | `docker compose up -d`, `ps`, `logs -f`, `down` |
+| `*.sln`, `*.csproj` | `dotnet build`, `run`, `test` |
+| `Makefile`, `Cargo.toml`, `go.mod` | make targets, cargo, go |
+
+`Ctrl+Shift+R` lists every action. Shift+click runs an action in a new pane, handy for dev servers.
+
+**Saved layouts.** From the ☰ button of the project card, save the layout of the current tab: the panes, their folders and the commands running in them (for example `npm run dev` in one pane and `docker compose logs -f` in another). Opening the project in a new tab (Ctrl+click, or Ctrl+Enter in Jump to folder) brings the whole layout back.
+
+Command history works with PowerShell, Git Bash and WSL; the Command Prompt (cmd) does not report the commands it runs. To activate Python environments in Windows PowerShell 5.1 the script execution policy must allow it (`Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`).
 
 ## Suggestions and syntax colors
 
@@ -144,6 +172,7 @@ src/
     styles.css         Yaru Dark theme
     icons.js           symbolic icons
     app.js             tabs, panes, sidebar, pickers, shortcuts
+    smart.js           per-folder history, projects, git, saved layouts
 scripts/
   ensure-electron.js   fallback Electron download
   check.js             syntax check (npm run lint)

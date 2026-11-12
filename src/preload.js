@@ -21,6 +21,11 @@ contextBridge.exposeInMainWorld('yt', {
   onData: (cb) => ipcRenderer.on('pty:data', (_e, id, data) => cb(id, data)),
   onExit: (cb) => ipcRenderer.on('pty:exit', (_e, id, code) => cb(id, code)),
 
+  // archivi e progetti
+  loadStore: (name) => ipcRenderer.invoke('store:load', name),
+  saveStore: (name, data) => ipcRenderer.invoke('store:save', name, data),
+  detectProject: (dir) => ipcRenderer.invoke('project:detect', dir),
+
   // fs
   list: (dir, showHidden) => ipcRenderer.invoke('fs:list', dir, showHidden),
   walkDirs: (root, depth, limit) => ipcRenderer.invoke('fs:walkDirs', root, depth, limit),

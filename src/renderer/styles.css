@@ -233,3 +233,48 @@ kbd { font: 11.5px var(--ui-font); background: var(--btn); color: var(--fg-dim);
 
 /* -------------------------------------------------------------------- Toast */
 #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 70; background: var(--menu); color: var(--fg); padding: 9px 18px; border-radius: 20px; box-shadow: 0 0 0 1px rgba(0,0,0,.6), 0 8px 24px rgba(0,0,0,.5); font-size: 13px; }
+
+/* ------------------------------------------------- Progetto e "Usati qui" */
+.mono { font-family: var(--mono-font); font-size: 12.5px; }
+.sb-section.project { margin: 8px 8px 2px; padding: 8px 0 6px; border-radius: 10px; background: rgba(247,247,247,.04); box-shadow: inset 0 0 0 1px var(--edge); }
+.proj-head { padding: 0 8px 4px 12px; }
+.proj-title { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.proj-title .ico { color: var(--accent-link); }
+.proj-title b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+.proj-root { margin: 2px 0 0 24px; font-size: 11.5px; color: var(--fg-faint); cursor: default; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.proj-root:hover { color: var(--accent-link); }
+.proj-chips { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0 2px; }
+.chip { display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 7px; border-radius: 10px; font-size: 11.5px; background: var(--btn); color: var(--fg-dim); white-space: nowrap; }
+.chip .ico { width: 12px; height: 12px; }
+.chip-git { background: #233950; color: #9CCBFF; }
+.chip-mod { color: #F99B11; }
+.chip-kind { color: var(--fg-dim); }
+.sb-section.project ul { padding: 0 4px; }
+.sb-section li.act .ico { color: var(--accent-link); width: 14px; height: 14px; }
+.sb-section li.act.special .ico { color: var(--fg-dim); }
+.sb-section li.act .sub, .sb-section li.cmd-item .sub { font-family: var(--ui-font); }
+.sb-section li.more { color: var(--fg-faint); font-size: 12px; height: 26px; }
+.sb-section li.more:hover { color: var(--fg); }
+
+.sb-section li.cmd-item { gap: 8px; }
+.cmd-dot { width: 6px; height: 6px; border-radius: 50%; flex: none; background: #26A269; opacity: .85; }
+.cmd-dot.fail { background: #FF7A71; }
+.sb-section li .run { opacity: 0; border: 0; background: transparent; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; color: var(--accent-link); flex: none; }
+.sb-section li .run .ico { width: 12px; height: 12px; color: var(--accent-link); }
+.sb-section li:hover .run { opacity: 1; }
+.sb-section li .run:hover { background: var(--btn-hover); }
+
+/* Segni git nella lista dei file */
+.git-mark { width: 7px; height: 7px; border-radius: 50%; flex: none; margin-left: auto; }
+.git-mark.st-mod { background: #F99B11; }
+.git-mark.st-new { background: #26A269; }
+.git-mark.st-conf { background: #FF7A71; }
+.git-mark.st-dir { box-shadow: inset 0 0 0 1.5px #F99B11; }
+
+/* Ramo git nell'intestazione del pannello */
+.pane-header .p-git { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; color: var(--fg-faint); white-space: nowrap; cursor: default; }
+.pane-header .p-git:empty { display: none; }
+.pane-header .p-git .ico { width: 12px; height: 12px; }
+.pane.focused .pane-header .p-git { color: #9CCBFF; }
+.pane-header .p-git .g-count { color: #F99B11; margin-left: 2px; }
+.pane-header .p-git .g-ab { color: var(--fg-dim); }

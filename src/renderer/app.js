@@ -117,6 +117,7 @@ class Pane {
       <div class="pane-header">
         <span class="shell-ico">${icon(profile.icon || 'terminal')}</span>
         <div class="p-path"></div>
+        <span class="p-git"></span>
         <span class="p-title"></span>
         <div class="p-actions">
           <button class="icon-btn" data-act="split-h" title="Dividi a destra (Ctrl+Shift+D)">${icon('splitH')}</button>
@@ -129,6 +130,8 @@ class Pane {
     this.termEl = this.el.querySelector('.pane-term');
     this.pathEl = this.el.querySelector('.p-path');
     this.titleEl = this.el.querySelector('.p-title');
+    this.gitEl = this.el.querySelector('.p-git');
+    this.gitEl.addEventListener('click', (e) => { e.stopPropagation(); focusPane(this.id); if (!S.cfg.sidebarVisible) toggleSidebar(true); });
 
     this.el.addEventListener('mousedown', () => focusPane(this.id, false), true);
     this.el.querySelector('.p-actions').addEventListener('click', (e) => {
@@ -187,6 +190,8 @@ class Pane {
       try { const u = new URL(data); let p = decodeURIComponent(u.pathname); if (/^\/[A-Za-z]:/.test(p)) p = p.slice(1).replace(/\//g, '\\'); this.setCwd(p); } catch {}
       return true;
     });
+    // OSC 7777: comandi avviati/terminati (cronologia per cartella, disposizioni)
+    this.term.parser.registerOscHandler(7777, (data) => { onShellEvent(this, data); return true; });
     this.term.onTitleChange((t) => { this.title = t; this.titleEl.textContent = t; this.titleEl.title = t; renderTabs(); });
     this.term.onData((d) => window.yt.write(this.id, d));
     this.term.attachCustomKeyEventHandler((e) => !handleShortcut(e, this));
@@ -220,6 +225,7 @@ class Pane {
     this.renderPath();
     if (changed || initial) {
       recordVisit(p);
+      paneCwdChanged(this);
       const tab = tabOfPane(this.id);
       if (tab && tab.focused === this.id) { if (tab === activeTab()) syncSidebar(); renderTabs(); }
       saveSessionSoon();
@@ -287,13 +293,17 @@ async function newTab(profile, cwd, tree) {
   const build = (n) => {
     if (n.type === 'split') return { type: 'split', dir: n.dir, ratio: n.ratio || 0.5, a: build(n.a), b: build(n.b) };
     const p = new Pane(profileById(n.profile), n.cwd);
+    p.startCmd = n.cmd || null;
     S.panes.set(p.id, p); created.push(p);
     return { type: 'pane', id: p.id };
   };
   tab.root = build(tree || { type: 'pane', profile: (profile || defaultProfile()).id, cwd: cwd || (focusedPane() && focusedPane().cwd) || S.info.home });
   tab.focused = panesOf(tab.root)[0];
   activateTab(tab.id);
-  for (const p of created) await p.start();
+  for (const p of created) {
+    await p.start();
+    if (p.startCmd) window.yt.write(p.id, p.startCmd + '\r');
+  }
   focusPane(tab.focused);
   saveSessionSoon();
   return tab;
@@ -390,6 +400,7 @@ async function splitPane(pid, dir, cwd, profile) {
   await p.start();
   focusPane(p.id);
   saveSessionSoon();
+  return p;
 }
 
 function closePane(pid) {
@@ -561,9 +572,12 @@ async function syncSidebar(force) {
   if (!force && samePath(S.sidebarDir, p.cwd)) { renderLocation(); return; }
   S.sidebarDir = p.cwd;
   renderLocation();
+  S.project = null; S.gitIndex = null;
+  renderDirCommands();
   await loadSidebarList();
   renderBookmarks();
   renderRecent();
+  refreshProject();
 }
 
 function renderLocation() {
@@ -606,7 +620,7 @@ function renderSidebarList() {
   if (!list.length) { ul.innerHTML = `<div class="sb-empty">${$('#sb-filter').value ? 'Nessuna corrispondenza' : 'Cartella vuota'}</div>`; return; }
   const max = 600;
   ul.innerHTML = list.slice(0, max).map((e, i) =>
-    `<li class="${e.isDir ? 'dir' : 'file'} ${e.hidden ? 'hidden-entry' : ''} ${i === S.sidebarSel ? 'sel' : ''}" data-i="${i}" title="${esc(e.name)}">${icon(e.isDir ? 'folder' : 'file')}<span class="lbl">${esc(e.name)}</span></li>`
+    `<li class="${e.isDir ? 'dir' : 'file'} ${e.hidden ? 'hidden-entry' : ''} ${i === S.sidebarSel ? 'sel' : ''}" data-i="${i}" title="${esc(e.name)}">${icon(e.isDir ? 'folder' : 'file')}<span class="lbl">${esc(e.name)}</span>${gitMark(e)}</li>`
   ).join('') + (list.length > max ? `<div class="sb-empty">…altri ${list.length - max} elementi</div>` : '');
   ul.querySelector('li.sel')?.scrollIntoView({ block: 'nearest' });
 }
@@ -655,6 +669,7 @@ function clearSidebarFilter() { $('#sb-filter').value = ''; S.sidebarSel = -1; r
 // mode: 'cd' | 'tab' | 'h' | 'v'
 function openDir(dir, mode = 'cd') {
   const p = focusedPane();
+  if (mode === 'tab' && layoutFor(dir)) return openLayout(layoutFor(dir));
   if (mode === 'tab' || !p) return newTab(p ? p.profile : null, dir);
   if (mode === 'h' || mode === 'v') return splitPane(p.id, mode, dir);
   p.cd(dir);
@@ -920,6 +935,11 @@ function commands() {
   const list = [
     { label: 'Salta a cartella', icon: 'jump', kbd: 'Ctrl+G', run: openJump },
     { label: 'Filtra cartella corrente', icon: 'search', kbd: 'Ctrl+Shift+L', run: focusSidebarFilter },
+    { label: 'Comandi usati in questa cartella', icon: 'history', kbd: 'Ctrl+H', run: openDirCommands },
+    { label: 'Azioni del progetto', icon: 'box', kbd: 'Ctrl+Shift+R', run: openProjectActions },
+    ...(S.project ? [{ label: `Salva la disposizione per ${S.project.name}`, icon: 'splitH', run: saveLayout }] : []),
+    ...(S.project && layoutFor(S.project.root) ? [{ label: `Apri la disposizione di ${S.project.name}`, icon: 'splitH', run: () => openLayout(layoutFor(S.project.root)) }] : []),
+    { label: `Attiva da solo l’ambiente Python: ${S.cfg.autoVenv ? 'attivo' : 'disattivo'}`, icon: 'python', run: toggleAutoVenv },
     { label: 'Nuova scheda', icon: 'plus', kbd: 'Ctrl+Shift+T', run: () => newTab() },
     ...S.profiles.map((pr) => ({ label: `Nuova scheda: ${pr.name}`, icon: pr.icon, run: () => newTab(pr) })),
     { label: 'Dividi a destra', icon: 'splitH', kbd: 'Ctrl+Shift+D', run: () => splitPane(null, 'h') },
@@ -966,6 +986,8 @@ function showShortcuts() {
   const rows = [
     ['Ctrl+G', 'Salta a cartella (fuzzy su preferiti, recenti, sottocartelle)'],
     ['Ctrl+Shift+L', 'Filtra il contenuto della cartella nella barra laterale'],
+    ['Ctrl+H', 'Comandi usati in questa cartella'],
+    ['Ctrl+Shift+R', 'Azioni del progetto (npm, docker, make…)'],
     ['Alt+Su', 'Vai alla cartella superiore'],
     ['Alt+1…9', 'Vai al preferito n°'],
     ['Ctrl+Shift+D / E', 'Dividi pannello a destra / in basso'],
@@ -1106,6 +1128,7 @@ function handleShortcut(e, pane) {
   if (ctrl && shift && !alt) {
     switch (code) {
       case 'KeyP': return run(openPalette);
+      case 'KeyR': return run(openProjectActions);
       case 'KeyT': return run(() => newTab());
       case 'KeyD': return run(() => splitPane(null, 'h'));
       case 'KeyE': return run(() => splitPane(null, 'v'));
@@ -1121,6 +1144,7 @@ function handleShortcut(e, pane) {
   }
   if (ctrl && !shift && !alt) {
     if (code === 'KeyG') return run(openJump);
+    if (code === 'KeyH') return run(openDirCommands);
     if (code === 'KeyB') return run(() => toggleSidebar());
     if (code === 'Tab') return run(() => cycleTab(1));
     if (code === 'Equal' || code === 'NumpadAdd') return run(() => setFontSize(S.cfg.fontSize + 1));
@@ -1235,16 +1259,19 @@ window.yt.onExit((id) => {
 // =========================================================================
 // Avvio
 // =========================================================================
-(async function init() {
+// Avvio dopo il caricamento di tutti gli script (smart.js compreso)
+async function init() {
   S.cfg = await window.yt.loadConfig();
   S.info = await window.yt.info();
   S.profiles = S.info.profiles;
   if (!S.cfg.bookmarks || !S.cfg.bookmarks.length) S.cfg.bookmarks = [S.info.home];
   document.documentElement.style.setProperty('--mono-font', S.cfg.fontFamily);
 
+  await loadSmartStores();
   setupHeaderbar();
   setupSidebar();
   setupSearch();
+  setupSmart();
 
   try { await document.fonts.load(`${S.cfg.fontSize}px ${S.cfg.fontFamily}`); } catch {}
 
@@ -1261,4 +1288,5 @@ window.yt.onExit((id) => {
   } else {
     await newTab(defaultProfile(), S.info.home);
   }
-})();
+}
+document.addEventListener('DOMContentLoaded', init);

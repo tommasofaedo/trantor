@@ -5,6 +5,7 @@ const { app, BrowserWindow, ipcMain, shell, clipboard } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const { execFile } = require('child_process');
 
 let pty;
 try {
@@ -135,13 +136,34 @@ const SYNTAX = {
 function psIntegrationScript(enhance) {
   const lines = [
     '$global:__trOrigPrompt = $function:prompt',
+    'function global:__trB64([string]$s) { [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($s)) }',
     'function global:prompt {',
+    '  $ok = $?',
     '  $loc = $executionContext.SessionState.Path.CurrentLocation',
     '  $osc = ""',
-    '  if ($loc.Provider.Name -eq "FileSystem") { $osc = "$([char]27)]9;9;`"$($loc.ProviderPath)`"$([char]7)" }',
+    // Comando appena terminato: cartella in cui è partito, testo, esito, durata (OSC 7777)
+    '  $h = Get-History -Count 1',
+    '  if ($h -and $h.Id -ne $global:__trLastId) {',
+    '    $global:__trLastId = $h.Id',
+    '    $ms = [int]($h.EndExecutionTime - $h.StartExecutionTime).TotalMilliseconds',
+    '    if ($global:__trPrevDir) { $osc += "$([char]27)]7777;cmd;$(__trB64 $global:__trPrevDir);$(__trB64 $h.CommandLine);$([int]$ok);$ms$([char]7)" }',
+    '  }',
+    '  if ($loc.Provider.Name -eq "FileSystem") {',
+    '    $global:__trPrevDir = $loc.ProviderPath',
+    '    $osc += "$([char]27)]9;9;`"$($loc.ProviderPath)`"$([char]7)"',
+    '  }',
     '  $orig = if ($global:__trOrigPrompt) { & $global:__trOrigPrompt } else { "PS $($loc)> " }',
     '  return $osc + $orig',
-    '}'
+    '}',
+    // Invio: segnala a Trantor il comando che sta partendo (serve per salvare le disposizioni)
+    'if (Get-Module PSReadLine) { try {',
+    '  Set-PSReadLineKeyHandler -Chord Enter -ScriptBlock {',
+    '    $l = $null; $c = $null',
+    '    [Microsoft.PowerShell.PSConsoleReadLine]::GetBufferState([ref]$l, [ref]$c)',
+    '    if ($l.Trim()) { [Console]::Write("$([char]27)]7777;start;$(__trB64 $l)$([char]7)") }',
+    '    [Microsoft.PowerShell.PSConsoleReadLine]::AcceptLine()',
+    '  }',
+    '} catch {} }'
   ];
   if (enhance) {
     const fg = (rgb, style = '') => `"$e[${style}38;2;${rgb}m"`;
@@ -210,13 +232,28 @@ const BASH_INIT = [
   "bind '\"\\e[B\": history-search-forward'"
 ].join('\n');
 
+// PROMPT_COMMAND: registra il comando appena terminato (OSC 7777) e la cartella corrente (OSC 9;9).
+// Il primo prompt non registra nulla: "history 1" lì è l'ultima riga della sessione precedente.
 function bashPromptCommand(pathExpr, enhance) {
-  const osc = `printf "\\033]9;9;\\"%s\\"\\007" "${pathExpr}"`;
-  return enhance ? `[ -z "$__TR_INIT" ] && { __TR_INIT=1; eval "$TRANTOR_INIT"; }; ${osc}` : osc;
+  const b64 = (v) => `$(printf %s "${v}" | base64 | tr -d '\\n')`;
+  return [
+    '__tr_ec=$?',
+    `__tr_p="${pathExpr}"`,
+    '__tr_h="$(HISTTIMEFORMAT= history 1)"',
+    '__tr_n="$(printf %s "$__tr_h" | sed -E \'s/^ *([0-9]+).*/\\1/\')"',
+    '__tr_c="$(printf %s "$__tr_h" | sed -E \'s/^ *[0-9]+\\*? +//\')"',
+    `if [ -z "\${__tr_ln+x}" ]; then __tr_ln="$__tr_n"; elif [ -n "$__tr_n" ] && [ "$__tr_n" != "$__tr_ln" ]; then printf "\\033]7777;cmd;%s;%s;%s;0\\007" "${b64('$__tr_pd')}" "${b64('$__tr_c')}" "$([ $__tr_ec = 0 ] && echo 1 || echo 0)"; __tr_ln="$__tr_n"; fi`,
+    '__tr_pd="$__tr_p"',
+    enhance ? '[ -z "$__TR_INIT" ] && { __TR_INIT=1; eval "$TRANTOR_INIT"; }' : ':',
+    'printf "\\033]9;9;\\"%s\\"\\007" "$__tr_p"'
+  ].join('; ');
 }
 
+// PS0 viene espanso da bash subito prima di eseguire un comando: lo usiamo per l'evento "start"
+const BASH_PS0 = '$(printf "\\033]7777;start;%s\\007" "$(HISTTIMEFORMAT= history 1 | sed -E \'s/^ *[0-9]+\\*? +//\' | base64 | tr -d \'\\n\')")';
+
 function buildSpawn(profile, cwd, enhance) {
-  const env = { ...process.env, TERM_PROGRAM: 'Trantor', COLORTERM: 'truecolor' };
+  const env = { ...process.env, TERM_PROGRAM: 'Trantor', COLORTERM: 'truecolor', PS0: BASH_PS0 };
   if (enhance) env.TRANTOR_INIT = BASH_INIT;
   let args = [];
   switch (profile.kind) {
@@ -235,7 +272,7 @@ function buildSpawn(profile, cwd, enhance) {
       break;
     case 'wsl':
       env.TR_PC = bashPromptCommand('$(wslpath -w "$PWD")', enhance);
-      env.WSLENV = (process.env.WSLENV ? process.env.WSLENV + ':' : '') + 'TR_PC/u' + (enhance ? ':TRANTOR_INIT/u' : '');
+      env.WSLENV = (process.env.WSLENV ? process.env.WSLENV + ':' : '') + 'TR_PC/u:PS0/u' + (enhance ? ':TRANTOR_INIT/u' : '');
       args = ['--cd', cwd, '--exec', 'bash', '-c', 'export PROMPT_COMMAND="$TR_PC${PROMPT_COMMAND:+;$PROMPT_COMMAND}"; exec bash -i'];
       break;
     case 'bash':
@@ -368,6 +405,207 @@ ipcMain.on('pty:resize', (_e, id, cols, rows) => {
 ipcMain.on('pty:kill', (_e, id) => {
   const p = ptys.get(id);
   if (p) { try { p.proc.kill(); } catch {} ptys.delete(id); }
+});
+
+// ---------------------------------------------------------------------------
+// IPC — archivi JSON separati (cronologia comandi per cartella, disposizioni)
+// ---------------------------------------------------------------------------
+const STORE_NAMES = new Set(['commands', 'layouts']);
+const storeFile = (name) => path.join(app.getPath('userData'), `${name}.json`);
+ipcMain.handle('store:load', (_e, name) => {
+  if (!STORE_NAMES.has(name)) return null;
+  try { return JSON.parse(fs.readFileSync(storeFile(name), 'utf8')); } catch { return null; }
+});
+ipcMain.handle('store:save', (_e, name, data) => {
+  if (!STORE_NAMES.has(name)) return false;
+  try {
+    const f = storeFile(name);
+    fs.mkdirSync(path.dirname(f), { recursive: true });
+    fs.writeFileSync(f + '.tmp', JSON.stringify(data), 'utf8');
+    fs.renameSync(f + '.tmp', f);
+    return true;
+  } catch { return false; }
+});
+
+// ---------------------------------------------------------------------------
+// IPC — riconoscimento progetti
+// Risale dalla cartella corrente fino alla radice del progetto e propone le azioni
+// tipiche: script npm, ambiente Python, docker compose, dotnet, make, cargo, go.
+// ---------------------------------------------------------------------------
+const exists = (p) => { try { fs.accessSync(p); return true; } catch { return false; } };
+const readJson = (p) => { try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch { return null; } };
+const PROJECT_MARKERS = ['package.json', 'pyproject.toml', 'requirements.txt', 'setup.py', 'Cargo.toml', 'go.mod',
+  'docker-compose.yml', 'docker-compose.yaml', 'compose.yml', 'compose.yaml', 'Makefile', 'makefile'];
+
+function findUp(start, test, stopAt) {
+  let dir = start;
+  for (let i = 0; i < 25; i++) {
+    if (test(dir)) return dir;
+    if (stopAt && dir === stopAt) return null;
+    const up = path.dirname(dir);
+    if (up === dir) return null;
+    dir = up;
+  }
+  return null;
+}
+
+function listSafe(dir) { try { return fs.readdirSync(dir); } catch { return []; } }
+
+function gitInfo(root) {
+  return new Promise((resolve) => {
+    const info = { root, branch: null, ahead: 0, behind: 0, changes: {}, count: 0, available: true };
+    // ramo letto direttamente da .git/HEAD (funziona anche senza git installato)
+    try {
+      let gitDir = path.join(root, '.git');
+      if (fs.statSync(gitDir).isFile()) {
+        const m = fs.readFileSync(gitDir, 'utf8').match(/gitdir:\s*(.+)/);
+        if (m) gitDir = path.resolve(root, m[1].trim());
+      }
+      const head = fs.readFileSync(path.join(gitDir, 'HEAD'), 'utf8').trim();
+      info.branch = head.startsWith('ref:') ? head.replace(/^ref:\s*refs\/heads\//, '') : head.slice(0, 7);
+    } catch {}
+    execFile('git', ['-C', root, '--no-optional-locks', 'status', '--porcelain=v1', '-b', '-z', '--untracked-files=normal'],
+      { timeout: 4000, maxBuffer: 8 * 1024 * 1024, windowsHide: true }, (err, stdout) => {
+        if (err) { info.available = err.code !== 'ENOENT'; return resolve(info); }
+        const parts = stdout.split('\0');
+        for (let i = 0; i < parts.length; i++) {
+          const line = parts[i];
+          if (!line) continue;
+          if (line.startsWith('## ')) {
+            const m = line.match(/^## (?:No commits yet on )?([^.\s]+)/);
+            if (m) info.branch = m[1];
+            const a = line.match(/ahead (\d+)/); const b = line.match(/behind (\d+)/);
+            info.ahead = a ? +a[1] : 0; info.behind = b ? +b[1] : 0;
+            continue;
+          }
+          const xy = line.slice(0, 2); const file = line.slice(3);
+          if (xy[0] === 'R' || xy[0] === 'C') i++; // con -z il nome originale segue come voce separata
+          let st = 'M';
+          if (xy === '??') st = '?';
+          else if (xy.includes('U') || xy === 'AA' || xy === 'DD') st = 'U';
+          else if (xy.includes('A')) st = 'A';
+          else if (xy.includes('D')) st = 'D';
+          else if (xy[0] === 'R') st = 'R';
+          info.changes[file.replace(/\/$/, '')] = st;
+        }
+        info.count = Object.keys(info.changes).length;
+        resolve(info);
+      });
+  });
+}
+
+function nodeActions(dir) {
+  const pkg = readJson(path.join(dir, 'package.json'));
+  if (!pkg) return null;
+  let pm = 'npm';
+  if (exists(path.join(dir, 'pnpm-lock.yaml'))) pm = 'pnpm';
+  else if (exists(path.join(dir, 'yarn.lock'))) pm = 'yarn';
+  else if (exists(path.join(dir, 'bun.lockb')) || exists(path.join(dir, 'bun.lock'))) pm = 'bun';
+  const run = (name) => pm === 'npm' ? `npm run ${name}` : pm === 'bun' ? `bun run ${name}` : `${pm} ${name}`;
+  const actions = [];
+  if (!exists(path.join(dir, 'node_modules'))) actions.push({ label: `${pm} install`, cmd: `${pm} install`, hint: 'dipendenze mancanti' });
+  const order = ['dev', 'start', 'serve', 'build', 'test', 'lint'];
+  const names = Object.keys(pkg.scripts || {}).filter((n) => !/^(pre|post)/.test(n) || order.includes(n));
+  names.sort((a, b) => ((order.indexOf(a) + 1 || 99) - (order.indexOf(b) + 1 || 99)) || a.localeCompare(b));
+  for (const n of names) actions.push({ label: run(n), cmd: run(n), hint: String(pkg.scripts[n]).slice(0, 80) });
+  return { kind: 'node', label: 'Node', name: pkg.name, dir, actions };
+}
+
+function pythonActions(dir) {
+  const has = (f) => exists(path.join(dir, f));
+  if (!['pyproject.toml', 'requirements.txt', 'setup.py', 'manage.py'].some(has)) return null;
+  let venv = null;
+  for (const v of ['.venv', 'venv', 'env', '.env']) {
+    const vp = path.join(dir, v);
+    if (exists(path.join(vp, 'pyvenv.cfg'))) {
+      const win = exists(path.join(vp, 'Scripts'));
+      venv = {
+        name: v, path: vp,
+        ps1: path.join(vp, win ? 'Scripts' : 'bin', win ? 'Activate.ps1' : 'activate.ps1'),
+        bat: path.join(vp, 'Scripts', 'activate.bat'),
+        sh: path.join(vp, win ? 'Scripts' : 'bin', 'activate')
+      };
+      break;
+    }
+  }
+  const actions = [];
+  if (!venv) actions.push({ label: 'python -m venv .venv', cmd: 'python -m venv .venv', hint: 'crea un ambiente virtuale' });
+  if (has('requirements.txt')) actions.push({ label: 'pip install -r requirements.txt', cmd: 'pip install -r requirements.txt' });
+  else if (has('pyproject.toml')) actions.push({ label: 'pip install -e .', cmd: 'pip install -e .' });
+  if (has('manage.py')) actions.push({ label: 'python manage.py runserver', cmd: 'python manage.py runserver' });
+  for (const f of ['main.py', 'app.py']) if (has(f)) actions.push({ label: `python ${f}`, cmd: `python ${f}` });
+  if (exists(path.join(dir, 'tests')) || exists(path.join(dir, 'pytest.ini'))) actions.push({ label: 'pytest', cmd: 'pytest' });
+  return { kind: 'python', label: 'Python', dir, venv, actions };
+}
+
+function composeActions(dir) {
+  const f = ['compose.yaml', 'compose.yml', 'docker-compose.yml', 'docker-compose.yaml'].find((n) => exists(path.join(dir, n)));
+  if (!f) return null;
+  return { kind: 'docker', label: 'Docker', dir, actions: [
+    { label: 'docker compose up -d', cmd: 'docker compose up -d' },
+    { label: 'docker compose ps', cmd: 'docker compose ps' },
+    { label: 'docker compose logs -f', cmd: 'docker compose logs -f --tail=100' },
+    { label: 'docker compose down', cmd: 'docker compose down' }
+  ] };
+}
+
+function dotnetActions(dir) {
+  const files = listSafe(dir);
+  const sln = files.find((n) => /\.(sln|slnx)$/i.test(n));
+  const proj = files.find((n) => /\.(csproj|fsproj|vbproj)$/i.test(n));
+  if (!sln && !proj) return null;
+  const actions = [{ label: 'dotnet build', cmd: 'dotnet build' }];
+  if (proj) actions.push({ label: 'dotnet run', cmd: 'dotnet run' });
+  actions.push({ label: 'dotnet test', cmd: 'dotnet test' });
+  return { kind: 'dotnet', label: '.NET', dir, actions };
+}
+
+function makeActions(dir) {
+  const f = ['Makefile', 'makefile'].find((n) => exists(path.join(dir, n)));
+  if (!f) return null;
+  let text = '';
+  try { text = fs.readFileSync(path.join(dir, f), 'utf8'); } catch {}
+  const targets = [];
+  for (const m of text.matchAll(/^([A-Za-z0-9][A-Za-z0-9_.\-/]*)\s*:(?!=)/gm)) {
+    if (!targets.includes(m[1]) && !m[1].startsWith('.')) targets.push(m[1]);
+    if (targets.length >= 10) break;
+  }
+  return { kind: 'make', label: 'Make', dir, actions: targets.map((t) => ({ label: `make ${t}`, cmd: `make ${t}` })) };
+}
+
+function cargoActions(dir) {
+  if (!exists(path.join(dir, 'Cargo.toml'))) return null;
+  return { kind: 'rust', label: 'Rust', dir, actions: ['build', 'run', 'test', 'clippy'].map((c) => ({ label: `cargo ${c}`, cmd: `cargo ${c}` })) };
+}
+
+function goActions(dir) {
+  if (!exists(path.join(dir, 'go.mod'))) return null;
+  return { kind: 'go', label: 'Go', dir, actions: [
+    { label: 'go run .', cmd: 'go run .' }, { label: 'go build ./...', cmd: 'go build ./...' }, { label: 'go test ./...', cmd: 'go test ./...' }
+  ] };
+}
+
+ipcMain.handle('project:detect', async (_e, start) => {
+  try { if (!fs.statSync(start).isDirectory()) return null; } catch { return null; }
+  const home = os.homedir();
+  const gitRoot = findUp(start, (d) => exists(path.join(d, '.git')));
+  const stop = gitRoot || null;
+  const projDir = findUp(start, (d) => d !== home && PROJECT_MARKERS.some((m) => exists(path.join(d, m))), stop);
+  const root = projDir || gitRoot;
+  if (!root || root === home) return null;
+  // i tipi di progetto si cercano nella cartella del progetto e, se diversa, nella radice git
+  const dirs = [...new Set([projDir, gitRoot].filter(Boolean))];
+  const kinds = [];
+  for (const d of dirs) {
+    for (const fn of [nodeActions, pythonActions, composeActions, dotnetActions, cargoActions, goActions, makeActions]) {
+      const k = fn(d);
+      if (k && !kinds.some((x) => x.kind === k.kind)) kinds.push(k);
+    }
+  }
+  const git = gitRoot ? await gitInfo(gitRoot) : null;
+  if (!git && !kinds.length) return null;
+  const pkgName = kinds.find((k) => k.kind === 'node' && k.name)?.name;
+  return { root, name: pkgName || path.basename(root), kinds, git };
 });
 
 // ---------------------------------------------------------------------------

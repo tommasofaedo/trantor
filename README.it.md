@@ -13,6 +13,7 @@ Funzioni principali:
 - **Schede e pannelli divisi** stile tmux, ma usabili anche col mouse (pulsanti su ogni pannello, divisori trascinabili, doppio clic sul divisore = 50/50)
 - **Barra laterale cartelle** che segue sempre il pannello attivo: preferiti, recenti, unità, contenuto della cartella con filtro
 - **Salta a cartella** (`Ctrl+G`): ricerca fuzzy su preferiti, cartelle recenti (frecency, come `z`/`zoxide`), sottocartelle e unità
+- **Cartelle intelligenti**: ricorda i comandi che lanci in ogni cartella, riconosce i progetti (git, Node, Python, Docker, .NET…) con azioni a un clic e ripristina le disposizioni dei pannelli salvate per progetto
 - **Suggerimenti e colori dei comandi**: suggerimento grigio dalla cronologia, menu di completamento con Tab, colori per comandi, stringhe e numeri (PowerShell), in tonalità Yaru
 - **Palette comandi** (`Ctrl+Shift+P`) con tutte le azioni e le scorciatoie
 - Sessione (schede, pannelli, cartelle) **ripristinata all'avvio**
@@ -46,6 +47,8 @@ Se mancano, l'app ripiega su Segoe UI e Cascadia Mono / Consolas.
 |---|---|
 | `Ctrl+G` | Salta a cartella (fuzzy) |
 | `Ctrl+Shift+L` | Filtra il contenuto della cartella nella barra laterale |
+| `Ctrl+H` | Comandi usati in questa cartella |
+| `Ctrl+Shift+R` | Azioni del progetto |
 | `Alt+Su` | Cartella superiore (con più pannelli: sposta il focus in su) |
 | `Alt+1…9` | Vai al preferito n° 1…9 |
 | `Ctrl+Shift+S` | Aggiungi/rimuovi la cartella corrente dai preferiti |
@@ -70,6 +73,31 @@ clic = entra · `Ctrl`+clic o clic centrale = nuova scheda · `Shift`+clic = pan
 Puoi anche **trascinare una cartella da Esplora file** dentro un pannello per entrarci (un file trascinato inserisce il suo percorso).
 
 Nel campo filtro della barra laterale puoi scrivere un percorso (`D:\Progetti`, `..`, `~\Documents`) e premere Invio; `Backspace` a campo vuoto sale di una cartella.
+
+## Cartelle intelligenti
+
+![Cartelle intelligenti](docs/smart-folders.png)
+
+Trantor ricorda cosa fai in ogni cartella e riconosce in che tipo di progetto ti trovi.
+
+**Comandi usati qui.** Ogni comando viene salvato con la cartella in cui l'hai lanciato, quante volte, quando e con che esito. La barra laterale mostra i più usati nella cartella corrente; `Ctrl+H` li cerca tutti, anche nelle cartelle superiori del progetto. Clic per inserire un comando, ▶ o doppio clic per eseguirlo, Shift+clic per eseguirlo in un nuovo pannello. Riapri un progetto dopo mesi e vedi subito come si compilava, si avviava o si pubblicava.
+
+**Scheda del progetto.** Se la cartella fa parte di un progetto, la barra laterale ne mostra nome, ramo git, modifiche e le azioni già pronte:
+
+| Riconosciuto da | Azioni |
+|---|---|
+| `.git` | ramo, modifiche, commit da inviare/ricevere; file modificati segnati nella lista |
+| `package.json` | script npm / pnpm / yarn / bun, install se manca `node_modules` |
+| `pyproject.toml`, `requirements.txt` | attiva l'ambiente virtuale, installa i requisiti, avvia `main.py`/`app.py`/`manage.py`, pytest |
+| `compose.yaml` | `docker compose up -d`, `ps`, `logs -f`, `down` |
+| `*.sln`, `*.csproj` | `dotnet build`, `run`, `test` |
+| `Makefile`, `Cargo.toml`, `go.mod` | target di make, cargo, go |
+
+`Ctrl+Shift+R` elenca tutte le azioni. Shift+clic esegue un'azione in un nuovo pannello, comodo per i server di sviluppo.
+
+**Disposizioni salvate.** Dal pulsante ☰ della scheda del progetto salvi la disposizione della scheda corrente: pannelli, cartelle e comandi in esecuzione (per esempio `npm run dev` in un pannello e `docker compose logs -f` in un altro). Aprendo il progetto in una nuova scheda (Ctrl+clic, oppure Ctrl+Invio in "Salta a cartella") ritrovi tutta la disposizione.
+
+La cronologia dei comandi funziona con PowerShell, Git Bash e WSL; il Prompt dei comandi (cmd) non comunica i comandi che esegue. Per attivare gli ambienti Python in Windows PowerShell 5.1 i criteri di esecuzione degli script devono permetterlo (`Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`).
 
 ## Suggerimenti e colori dei comandi
 
@@ -145,6 +173,7 @@ src/
     styles.css       tema Yaru Dark (colori derivati da github.com/ubuntu/yaru)
     icons.js         icone simboliche
     app.js           schede, pannelli, barra laterale, picker, scorciatoie
+    smart.js         cronologia per cartella, progetti, git, disposizioni
 ```
 
 Configurazione, preferiti, cronologia e sessione sono salvati in `%APPDATA%\Trantor\config.json`.
