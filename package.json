@@ -65,7 +65,7 @@
         "nsis",
         "portable"
       ],
-      "artifactName": "${productName}-${version}-${arch}-${target}.${ext}"
+      "artifactName": "${productName}-${arch}-${target}.${ext}"
     },
     "nsis": {
       "oneClick": false,
@@ -73,10 +73,10 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "include": "build/installer.nsh",
-      "artifactName": "${productName}-Setup-${version}-${arch}.${ext}"
+      "artifactName": "${productName}-Setup-${arch}.${ext}"
     },
     "portable": {
-      "artifactName": "${productName}-Portable-${version}-${arch}.${ext}"
+      "artifactName": "${productName}-Portable-${arch}.${ext}"
     }
   }
 }

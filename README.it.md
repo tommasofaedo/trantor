@@ -20,33 +20,20 @@ Funzioni principali:
 
 Basato su Electron + xterm.js + ConPTY (`@lydell/node-pty`, con binari precompilati: **non serve** Visual Studio Build Tools).
 
-## Installazione
+## Download
 
-Scarica l'installer o la versione portable dalla pagina [Releases](../../releases).
+<p>
+  <a href="../../releases/latest/download/Trantor-Setup-x64.exe"><b>⬇ Scarica Trantor per Windows</b></a> (installer, x64)
+  &nbsp;·&nbsp;
+  <a href="../../releases/latest/download/Trantor-Portable-x64.exe">Versione portable</a> (un solo <code>.exe</code>, senza installazione)
+</p>
 
-## Avvio dai sorgenti
+Windows 10 e 11 a 64 bit, non serve installare nient'altro. Versioni precedenti e note di rilascio nella pagina [Releases](../../releases).
 
-Serve [Node.js](https://nodejs.org) 20 o superiore.
+- **Installer**: aggiunge Trantor al menu Start e la voce **"Apri in Trantor"** quando fai clic destro su una cartella in Esplora file.
+- **Portable**: doppio clic e parte, comoda su chiavetta USB o su PC dove non puoi installare programmi. Si avvia qualche secondo più lentamente.
 
-```powershell
-cd trantor
-npm install
-npm start
-```
-
-## Creare l'installer / l'eseguibile portable
-
-```powershell
-npm run dist
-```
-
-Trovi in `dist\` sia l'installer sia la versione portable. L'installer aggiunge anche la voce **"Apri in Trantor"** al menu contestuale delle cartelle in Esplora file.
-
-Per pubblicare una release: su GitHub vai in **Releases → Draft a new release**, crea un tag (es. `v1.0.1`) e pubblica. La GitHub Action compila installer e portable e li allega alla release. Prima aggiorna `version` in `package.json`.
-
-## Problemi noti
-
-**"Electron failed to install correctly"**: lo script `postinstall` del progetto riscarica Electron in automatico e ne verifica il checksum. Se anche questo fallisce (proxy aziendale), imposta `HTTPS_PROXY` oppure `ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/` e rilancia `npm install`.
+> **"Windows ha protetto il PC"**: gli eseguibili non hanno ancora una firma digitale, quindi al primo avvio SmartScreen potrebbe avvisarti. Clicca **Ulteriori informazioni → Esegui comunque**.
 
 ## Font consigliati
 
@@ -116,7 +103,34 @@ All'avvio di ogni shell viene aggiunta una piccola integrazione che, a ogni prom
 
 Se nel tuo `.bashrc` di WSL sovrascrivi `PROMPT_COMMAND` (invece di aggiungerci), la barra laterale non seguirà i `cd` fatti a mano: in quel caso usa `PROMPT_COMMAND="$PROMPT_COMMAND;..."`.
 
-## Struttura
+## Sviluppo
+
+Serve solo se vuoi modificare il codice. Per usare Trantor basta [scaricarlo](#download).
+
+### Avvio dai sorgenti
+
+Serve [Node.js](https://nodejs.org) 20 o superiore. Clona la repository (pulsante verde **Code** su GitHub, oppure scaricala come ZIP), poi dalla sua cartella:
+
+```powershell
+npm install
+npm start
+```
+
+### Creare l'installer e la versione portable
+
+```powershell
+npm run dist
+```
+
+Trovi in `dist\` sia l'installer sia la versione portable. L'installer aggiunge anche la voce **"Apri in Trantor"** al menu contestuale delle cartelle in Esplora file.
+
+Per pubblicare una release: su GitHub vai in **Releases → Draft a new release**, crea un tag (es. `v1.0.1`) e pubblica. La GitHub Action compila installer e portable e li allega alla release. Prima aggiorna `version` in `package.json`.
+
+### Problemi di installazione
+
+**"Electron failed to install correctly"**: lo script `postinstall` del progetto riscarica Electron in automatico e ne verifica il checksum. Se anche questo fallisce (proxy aziendale), imposta `HTTPS_PROXY` oppure `ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/` e rilancia `npm install`.
+
+### Struttura
 
 ```
 scripts/

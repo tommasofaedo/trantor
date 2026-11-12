@@ -12,6 +12,21 @@
 
 ![Trantor](docs/screenshot.png)
 
+## Download
+
+<p>
+  <a href="../../releases/latest/download/Trantor-Setup-x64.exe"><b>⬇ Download Trantor for Windows</b></a> (installer, x64)
+  &nbsp;·&nbsp;
+  <a href="../../releases/latest/download/Trantor-Portable-x64.exe">Portable version</a> (single <code>.exe</code>, no installation)
+</p>
+
+Windows 10 and 11, 64-bit. Nothing else to install. Older versions and release notes are on the [Releases](../../releases) page.
+
+- **Installer**: adds Trantor to the Start menu and an **"Open in Trantor"** entry when you right-click a folder in Explorer.
+- **Portable**: double-click and go, handy on a USB stick or a PC where you can't install software. It starts a few seconds slower.
+
+> **"Windows protected your PC"**: the executables are not code-signed yet, so SmartScreen may warn you the first time. Click **More info → Run anyway**.
+
 ## Features
 
 - **Tabs and split panes** like tmux, but mouse-friendly: every pane has split / zoom / close buttons, dividers can be dragged (double-click resets to 50/50).
@@ -27,25 +42,6 @@
 ![Jump to folder](docs/jump-to-folder.png)
 
 > The interface is currently in Italian. Translations are welcome, see [CONTRIBUTING](CONTRIBUTING.md).
-
-## Install
-
-Download the installer or the portable `.exe` from [Releases](../../releases).
-
-## Run from source
-
-Requires [Node.js](https://nodejs.org) 20+. Clone the repository (green **Code** button on GitHub, or download it as ZIP), then from its folder:
-
-```powershell
-npm install
-npm start
-```
-
-Build the installer and the portable version into `dist\`:
-
-```powershell
-npm run dist
-```
 
 ## Keyboard shortcuts
 
@@ -110,15 +106,34 @@ If your WSL `.bashrc` *overwrites* `PROMPT_COMMAND`, append to it instead (`PROM
 
 For the full Ubuntu look install **Ubuntu** and **Ubuntu Mono** from <https://design.ubuntu.com/font>. Otherwise the app falls back to Segoe UI and Cascadia Mono / Consolas.
 
-## Troubleshooting
+## Development
+
+You only need this to change the code. To use Trantor, [download it](#download).
+
+### Run from source
+
+Requires [Node.js](https://nodejs.org) 20+. Clone the repository (green **Code** button on GitHub, or download it as ZIP), then from its folder:
+
+```powershell
+npm install
+npm start
+```
+
+Build the installer and the portable version into `dist\`:
+
+```powershell
+npm run dist
+```
+
+### Troubleshooting
 
 **`Electron failed to install correctly`**: the project's `postinstall` script re-downloads Electron and verifies its SHA-256 checksum. If that also fails behind a corporate proxy, set `HTTPS_PROXY`, or `ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/`, and run `npm install` again.
 
-## Releasing
+### Releasing
 
 On GitHub go to **Releases → Draft a new release**, create a tag such as `v1.0.1` and publish it. GitHub Actions builds the installer and the portable executable and attaches them to that release. Remember to bump `version` in `package.json` first.
 
-## Project structure
+### Project structure
 
 ```
 src/
