@@ -33,6 +33,19 @@ async function t(name, fn) {
     console.log(`   ${arp.size} voci ARP · gateway: ${[...gws].join(', ') || 'nessuno'}`);
   });
 
+  await t('riconoscimento dei comandi ssh', () => {
+    const src = require('fs').readFileSync(require('path').join(__dirname, '..', 'src', 'renderer', 'transfer.js'), 'utf8');
+    const body = src.slice(src.indexOf('const SSH_OPTS_WITH_ARG'), src.indexOf('function detectRemote'));
+    const { parseSsh } = new Function(body + ';return { parseSsh }')();
+    const t1 = parseSsh('ssh pi@10.0.0.5'); assert.strictEqual(t1.target, 'pi@10.0.0.5');
+    const t2 = parseSsh('ssh -p 2200 -i C:\\keys\\id root@plc.lan'); assert.strictEqual(t2.port, '2200'); assert.strictEqual(t2.identity, 'C:\\keys\\id'); assert.strictEqual(t2.target, 'root@plc.lan');
+    const t3 = parseSsh('ssh -J salto -l admin 192.168.1.1 uptime'); assert.strictEqual(t3.target, 'admin@192.168.1.1'); assert.strictEqual(t3.jump, 'salto');
+    const t4 = parseSsh('ssh ssh://op@host:2022'); assert.strictEqual(t4.target, 'op@host'); assert.strictEqual(t4.port, '2022');
+    const t5 = parseSsh('C:\\Windows\\System32\\OpenSSH\\ssh.exe -o StrictHostKeyChecking=no router'); assert.strictEqual(t5.target, 'router'); assert.deepStrictEqual(t5.options, ['StrictHostKeyChecking=no']);
+    assert.strictEqual(parseSsh('git status'), null);
+    assert.strictEqual(parseSsh('ssh -V'), null);
+  });
+
   // Dispositivo Modbus finto su localhost
   const server = net.createServer((s) => {
     s.on('error', () => {});

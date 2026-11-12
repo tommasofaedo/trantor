@@ -1,7 +1,7 @@
 // Trantor — processo principale Electron
 // Gestisce finestra, pseudo-terminali (ConPTY via node-pty), filesystem e configurazione.
 
-const { app, BrowserWindow, ipcMain, shell, clipboard, webContents } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, clipboard, webContents, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -789,6 +789,10 @@ ipcMain.handle('fs:drives', () => {
   return drives;
 });
 
+ipcMain.handle('dialog:chooseFiles', async (e) => {
+  const r = await dialog.showOpenDialog(winOf(e), { title: 'File da caricare', properties: ['openFile', 'multiSelections'] });
+  return r.canceled ? [] : r.filePaths;
+});
 ipcMain.handle('fs:isDir', (_e, p) => { try { return fs.statSync(p).isDirectory(); } catch { return false; } });
 ipcMain.handle('fs:resolve', (_e, base, rel) => path.resolve(base, rel));
 ipcMain.handle('fs:parent', (_e, p) => path.dirname(p));

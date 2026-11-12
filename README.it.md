@@ -14,6 +14,7 @@ Funzioni principali:
 - **Barra laterale cartelle** che segue sempre il pannello attivo: preferiti, recenti, unità, contenuto della cartella con filtro
 - **Salta a cartella** (`Ctrl+G`): ricerca fuzzy su preferiti, cartelle recenti (frecency, come `z`/`zoxide`), sottocartelle e unità
 - **Dispositivi in rete**: trova PLC, pannelli, router e server nella rete locale, riconosce Modbus, S7, EtherNet/IP, OPC UA, SSH e interfacce web, e legge i registri Modbus (solo lettura)
+- **Trasferire file via SSH**: trascina i file su un pannello remoto per caricarli, trascina fuori il nome di un file per scaricarlo
 - **Riorganizzare i pannelli**: trascina i pannelli per spostarli, scambiarli, portarli in un'altra scheda o staccarli in una nuova finestra senza fermare la shell
 - **Cartelle intelligenti**: ricorda i comandi che lanci in ogni cartella, riconosce i progetti (git, Node, Python, Docker, .NET…) con azioni a un clic e ripristina le disposizioni dei pannelli salvate per progetto
 - **Suggerimenti e colori dei comandi**: suggerimento grigio dalla cronologia, menu di completamento con Tab, colori per comandi, stringhe e numeri (PowerShell), in tonalità Yaru
@@ -94,6 +95,18 @@ Clic su un dispositivo per dettagli e azioni: SSH (scegliendo l'utente), interfa
 Usa la scansione solo su reti che gestisci o per cui hai l'autorizzazione.
 
 <br clear="right">
+
+## Trasferire file (SSH)
+
+Quando lanci `ssh` in un pannello (a mano o con l'azione SSH della vista Rete) il pannello diventa **remoto** e mostra `utente@host` nell'intestazione.
+
+- **Caricare**: trascina file o cartelle da Esplora file o dalla barra laterale sul pannello remoto, conferma la cartella di destinazione e vengono copiati con `scp`.
+- **Scaricare**: seleziona il nome di un file nel pannello remoto (per esempio nell'output di `ls`). Compare l'etichetta **Scarica**: cliccala per scaricare nella cartella mostrata nella barra laterale, oppure trascinala su un pannello locale o su una cartella della barra laterale per scegliere dove.
+- Nel menu del tasto destro di un pannello remoto ci sono anche *Carica file qui…* e *Scarica un file o una cartella…*.
+
+I trasferimenti eseguono `scp` (incluso in Windows 10 e 11) in un pannello sotto quello remoto: se il server chiede la password la scrivi lì, e il pannello si chiude da solo quando il trasferimento riesce. Porta, chiave (`-i`), host di salto (`-J`) e opzioni `-o` del tuo comando `ssh` vengono riutilizzati.
+
+Trantor conosce la cartella remota solo se il server la comunica. Per bash e zsh scegli **Rileva la cartella remota** dal menu del pannello: la attiva per la sessione corrente. Altrimenti i caricamenti vanno nella cartella home remota, che puoi cambiare prima di confermare.
 
 ## Riorganizzare i pannelli
 
@@ -213,6 +226,7 @@ src/
     smart.js         cronologia per cartella, progetti, git, disposizioni
     panes.js         trascinare, scambiare, spostare e staccare i pannelli
     network.js       vista dispositivi in rete e lettura Modbus
+    transfer.js      pannelli SSH e trasferimento file (scp)
     updates.js       pulsante di aggiornamento
   netscan.js         scansione di rete, riconoscimento servizi, Modbus TCP
 ```

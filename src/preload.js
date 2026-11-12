@@ -37,6 +37,9 @@ contextBridge.exposeInMainWorld('yt', {
   updateInstall: () => ipcRenderer.invoke('update:install'),
   onUpdateState: (cb) => ipcRenderer.on('update:state', (_e, s) => cb(s)),
 
+  // file da caricare
+  chooseFiles: () => ipcRenderer.invoke('dialog:chooseFiles'),
+
   // pannelli tra finestre
   detachPane: (payload) => ipcRenderer.invoke('pane:detach', payload),
   adoptInfo: () => ipcRenderer.invoke('pane:adoptInfo'),

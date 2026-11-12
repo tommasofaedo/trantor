@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.0 — 2026-11-12
+
+- **Drag files between local and remote panes**: a pane becomes remote when you run `ssh` in it (port, key, jump host and `-o` options are understood). Drop files or folders from Explorer or from the sidebar onto it to upload them; select a file name in the remote pane and drag the "Scarica" label onto a local pane or a sidebar folder (or click it) to download. Transfers run `scp` in a pane below, so password prompts work, and the pane closes by itself when the transfer succeeds
+- Remote folder detection for bash and zsh (pane menu → "Rileva la cartella remota"), shown in the pane header
+- Remote pane menu: upload files, download a file or folder by path, recent remote destinations per host
+
 ## 1.3.0 — 2026-11-12
 
 - **Network devices** (sidebar → Rete, Ctrl+Shift+N): scans the local network, finds devices also through the ARP table, shows the vendor from the MAC address and recognizes services: SSH, web, Siemens S7, Modbus TCP (vendor/product via device identification), EtherNet/IP (product name), OPC UA, MQTT, IEC 104, DNP3, ADS, RDP, VNC, printers, cameras. One-click actions: SSH with user choice, web interface, continuous ping, remote desktop, copy IP/MAC/OPC UA endpoint

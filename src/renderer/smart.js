@@ -69,10 +69,12 @@ function onShellEvent(pane, data) {
   pane.integ[f[0] === 'start' ? 'start' : 'cmd']++;
   if (f[0] === 'start') {
     pane.running = b64dec(f[1]).trim() || null;
+    detectRemote(pane, pane.running);
     return;
   }
   if (f[0] === 'cmd') {
     pane.running = null;
+    endRemote(pane);
     recordCommand(pane, b64dec(f[1]), b64dec(f[2]).trim(), f[3] === '1', parseInt(f[4], 10) || 0);
   }
 }

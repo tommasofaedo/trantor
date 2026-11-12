@@ -152,15 +152,21 @@ class Pane {
     this.el.addEventListener('contextmenu', (e) => { e.preventDefault(); paneMenu(this, e.clientX, e.clientY); });
 
     // Trascina una cartella da Esplora file → cd
-    this.el.addEventListener('dragover', (e) => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); this.el.classList.add('drop-target'); } });
+    this.el.addEventListener('dragover', (e) => {
+      const t = e.dataTransfer.types;
+      if (!(t.includes('Files') || t.includes(PATH_TYPE) || t.includes(REMOTE_TYPE))) return;
+      e.preventDefault();
+      this.termEl.dataset.drop = t.includes(REMOTE_TYPE) ? (this.remote ? 'Rilascia su un pannello locale' : `Scarica in ${baseName(this.cwd)}`)
+        : this.remote ? `Carica su ${this.remote.target}` : 'Rilascia per entrare nella cartella o inserire il percorso';
+      this.el.classList.add('drop-target');
+    });
     this.el.addEventListener('dragleave', () => this.el.classList.remove('drop-target'));
     this.el.addEventListener('drop', async (e) => {
-      e.preventDefault(); this.el.classList.remove('drop-target');
-      const files = [...e.dataTransfer.files];
-      if (!files.length) return;
-      const paths = files.map((f) => window.yt.pathForFile(f));
-      if (paths.length === 1 && await window.yt.isDir(paths[0])) this.cd(paths[0]);
-      else this.term.paste(paths.map((p) => quoteForShell(this.profile.kind, p)).join(' ') + ' ');
+      this.el.classList.remove('drop-target');
+      const t = e.dataTransfer.types;
+      if (!(t.includes('Files') || t.includes(PATH_TYPE) || t.includes(REMOTE_TYPE))) return;
+      e.preventDefault();
+      await handlePaneDrop(this, e);
     });
 
     this.term = new Terminal({
@@ -192,11 +198,12 @@ class Pane {
       return false;
     });
     this.term.parser.registerOscHandler(7, (data) => {
-      try { const u = new URL(data); let p = decodeURIComponent(u.pathname); if (/^\/[A-Za-z]:/.test(p)) p = p.slice(1).replace(/\//g, '\\'); this.setCwd(p); } catch {}
+      try { const u = new URL(data); let p = decodeURIComponent(u.pathname); if (setRemoteCwd(this, p)) return true; if (/^\/[A-Za-z]:/.test(p)) p = p.slice(1).replace(/\//g, '\\'); this.setCwd(p); } catch {}
       return true;
     });
     // OSC 7777: comandi avviati/terminati (cronologia per cartella, disposizioni)
     this.term.parser.registerOscHandler(7777, (data) => { onShellEvent(this, data); return true; });
+    this.term.onSelectionChange(() => { if (this.remote) showRemoteChip(this); });
     this.term.onTitleChange((t) => { this.title = t; this.titleEl.textContent = t; this.titleEl.title = t; renderTabs(); });
     this.term.onData((d) => window.yt.write(this.id, d));
     this.term.attachCustomKeyEventHandler((e) => !handleShortcut(e, this));
@@ -635,7 +642,7 @@ function renderSidebarList() {
   if (!list.length) { ul.innerHTML = `<div class="sb-empty">${$('#sb-filter').value ? 'Nessuna corrispondenza' : 'Cartella vuota'}</div>`; return; }
   const max = 600;
   ul.innerHTML = list.slice(0, max).map((e, i) =>
-    `<li class="${e.isDir ? 'dir' : 'file'} ${e.hidden ? 'hidden-entry' : ''} ${i === S.sidebarSel ? 'sel' : ''}" data-i="${i}" title="${esc(e.name)}">${icon(e.isDir ? 'folder' : 'file')}<span class="lbl">${esc(e.name)}</span>${gitMark(e)}</li>`
+    `<li draggable="true" class="${e.isDir ? 'dir' : 'file'} ${e.hidden ? 'hidden-entry' : ''} ${i === S.sidebarSel ? 'sel' : ''}" data-i="${i}" title="${esc(e.name)}">${icon(e.isDir ? 'folder' : 'file')}<span class="lbl">${esc(e.name)}</span>${gitMark(e)}</li>`
   ).join('') + (list.length > max ? `<div class="sb-empty">…altri ${list.length - max} elementi</div>` : '');
   ul.querySelector('li.sel')?.scrollIntoView({ block: 'nearest' });
 }
@@ -840,13 +847,13 @@ function highlight(text, q) {
 // =========================================================================
 const picker = { items: [], filtered: [], sel: 0, onPick: null, source: null, query: '' };
 
-function openPicker({ placeholder, iconName, hints, source, onPick }) {
+function openPicker({ placeholder, iconName, hints, source, onPick, initial }) {
   picker.source = source; picker.onPick = onPick; picker.sel = 0;
   $('#picker-input').placeholder = placeholder;
   $('.picker-icon').innerHTML = icon(iconName);
   $('#picker-hints').innerHTML = hints.map(([k, l]) => `<span><kbd>${k}</kbd> ${l}</span>`).join('');
   $('#overlay').classList.remove('hidden');
-  const inp = $('#picker-input'); inp.value = ''; inp.focus();
+  const inp = $('#picker-input'); inp.value = initial || ''; inp.focus(); inp.select();
   refreshPicker();
 }
 function closePicker(refocus = true) {
@@ -1092,6 +1099,7 @@ document.addEventListener('mousedown', (e) => { if (!e.target.closest('#menu')) 
 function paneMenu(p, x, y) {
   const hasSel = p.term.hasSelection();
   showMenu([
+    ...remoteMenuItems(p),
     { label: hasSel ? 'Copia' : 'Copia (nessuna selezione)', icon: 'copy', kbd: 'Ctrl+C', run: () => { if (hasSel) { window.yt.writeClipboard(p.term.getSelection()); p.term.clearSelection(); } } },
     { label: 'Incolla', icon: 'paste', kbd: 'Ctrl+V', run: async () => { p.term.paste(await window.yt.readClipboard()); p.term.focus(); } },
     '-',
@@ -1285,9 +1293,10 @@ function setupHeaderbar() {
 // Eventi dal processo principale
 // =========================================================================
 window.yt.onData((id, data) => { const p = S.panes.get(id); if (p) p.term.write(data); });
-window.yt.onExit((id) => {
+window.yt.onExit((id, code) => {
   const p = S.panes.get(id); if (!p) return;
   p.alive = false;
+  if (p.onExitHook) { try { p.onExitHook(code); } catch {} }
   closePane(id);
 });
 
@@ -1310,6 +1319,7 @@ async function init() {
   setupUpdates();
   setupTabDrop();
   setupNetwork();
+  setupTransfer();
 
   try { await document.fonts.load(`${S.cfg.fontSize}px ${S.cfg.fontFamily}`); } catch {}
 

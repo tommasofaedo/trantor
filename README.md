@@ -37,6 +37,7 @@ Windows 10 and 11, 64-bit. Nothing else to install. Older versions and release n
 - **Shells detected automatically**: PowerShell 7, Windows PowerShell, Command Prompt, Git Bash, WSL.
 - **Explorer integration**: "Open in Trantor" context-menu entry, drag a folder onto a pane to `cd` into it.
 - **Network devices**: finds PLCs, panels, routers and servers on the local network, recognizes Modbus, S7, EtherNet/IP, OPC UA, SSH and web interfaces, and reads Modbus registers (read only).
+- **File transfers over SSH**: drag files onto a remote pane to upload them, drag a file name out of it to download.
 - **Rearrange panes**: drag panes to move, swap, send them to another tab or detach them into a new window without stopping the shell.
 - **Smart folders**: remembers the commands you run in each folder, recognizes projects (git, Node, Python, Docker, .NET…) with one-click actions, and restores saved pane layouts per project.
 - **Command suggestions and syntax colors**: grey inline suggestions from history, Tab completion menu, colors for commands, strings and numbers (PowerShell), all in Yaru tones.
@@ -93,6 +94,18 @@ Click a device for details and actions: SSH (choose the user), open the web inte
 Scan only networks you manage or are authorized to test.
 
 <br clear="right">
+
+## File transfers (SSH)
+
+When you run `ssh` in a pane (yourself or with the SSH action of the network view) the pane becomes **remote** and shows `user@host` in its header.
+
+- **Upload**: drag files or folders from Explorer or from the sidebar onto the remote pane, confirm the destination folder and they are copied with `scp`.
+- **Download**: select a file name in the remote pane (for example in the output of `ls`). A **Scarica** label appears: click it to download into the folder shown in the sidebar, or drag it onto a local pane or a sidebar folder to choose where.
+- The right-click menu of a remote pane also has *Carica file qui…* and *Scarica un file o una cartella…*.
+
+Transfers run `scp` (included in Windows 10 and 11) in a pane below the remote one: if the server asks for a password you type it there, and the pane closes by itself when the transfer succeeds. Port, key (`-i`), jump host (`-J`) and `-o` options of your `ssh` command are reused.
+
+Trantor knows the remote folder only if the server reports it. For bash and zsh choose **Rileva la cartella remota** from the pane menu: it enables it for the current session. Otherwise uploads go to the remote home folder, which you can change before confirming.
 
 ## Rearranging panes
 
@@ -211,6 +224,7 @@ src/
     smart.js           per-folder history, projects, git, saved layouts
     panes.js           drag, swap, move and detach panes
     network.js         network devices view and Modbus reader
+    transfer.js        SSH panes and file transfers (scp)
     updates.js         update button
   netscan.js           network scan, service recognition, Modbus TCP
 scripts/
