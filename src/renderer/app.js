@@ -110,6 +110,7 @@ class Pane {
     this.cwd = cwd || S.info.home;
     this.title = '';
     this.alive = false;
+    this.integ = { cwd: 0, start: 0, cmd: 0 }; // eventi ricevuti dalla shell (diagnostica)
 
     this.el = document.createElement('div');
     this.el.className = 'pane';
@@ -183,7 +184,7 @@ class Pane {
 
     // OSC 9;9 (Windows Terminal) e OSC 7 per conoscere la cartella corrente
     this.term.parser.registerOscHandler(9, (data) => {
-      if (data.startsWith('9;')) { this.setCwd(data.slice(2).replace(/^"|"$/g, '')); return true; }
+      if (data.startsWith('9;')) { this.integ.cwd++; this.setCwd(data.slice(2).replace(/^"|"$/g, '')); return true; }
       return false;
     });
     this.term.parser.registerOscHandler(7, (data) => {
@@ -380,7 +381,7 @@ function focusPane(pid, takeFocus = true) {
   for (const id of panesOf(tab.root)) S.panes.get(id).el.classList.toggle('focused', id === pid);
   if (tab.id !== S.activeTab) activateTab(tab.id);
   if (takeFocus) S.panes.get(pid).term.focus();
-  if (changed) { renderTabs(); syncSidebar(); }
+  if (changed) { renderTabs(); syncSidebar(); renderDirCommands(); }
 }
 
 async function splitPane(pid, dir, cwd, profile) {
@@ -965,6 +966,7 @@ function commands() {
     { label: `Ripristina sessione all’avvio: ${S.cfg.restoreSession ? 'attivo' : 'disattivo'}`, icon: 'clock', run: () => { S.cfg.restoreSession = !S.cfg.restoreSession; window.yt.saveConfig({ restoreSession: S.cfg.restoreSession }); toast(`Ripristino sessione ${S.cfg.restoreSession ? 'attivato' : 'disattivato'}`); } },
     ...S.profiles.map((pr) => ({ label: `Shell predefinita: ${pr.name}`, icon: pr.icon, tag: defaultProfile().id === pr.id ? 'attuale' : null, run: () => { S.cfg.defaultProfile = pr.id; window.yt.saveConfig({ defaultProfile: pr.id }); toast(`${pr.name} è ora la shell predefinita`); } })),
     { label: 'Scorciatoie da tastiera', icon: 'command', kbd: 'F1', run: showShortcuts },
+    { label: 'Verifica integrazione della shell', icon: 'terminal', run: checkIntegration },
     { label: `Informazioni su Trantor ${S.info.version || ''}`, icon: 'terminal', run: () => toast(`Trantor ${S.info.version || ''} · licenza MIT`) }
   ];
   return list;
@@ -1216,7 +1218,8 @@ function setupHeaderbar() {
       { label: 'Suggerimenti e colori nella shell', icon: 'command', check: S.cfg.shellEnhancements !== false, run: toggleEnhancements },
       { label: 'Ripristina sessione all’avvio', icon: 'clock', check: S.cfg.restoreSession, run: () => { S.cfg.restoreSession = !S.cfg.restoreSession; window.yt.saveConfig({ restoreSession: S.cfg.restoreSession }); } },
       '-',
-      { label: 'Scorciatoie da tastiera', icon: 'command', kbd: 'F1', run: showShortcuts }
+      { label: 'Scorciatoie da tastiera', icon: 'command', kbd: 'F1', run: showShortcuts },
+      { label: 'Verifica integrazione della shell', icon: 'terminal', run: checkIntegration }
     ], r.right - 260, r.bottom + 6);
   };
   $('#btn-profiles').onclick = (e) => {

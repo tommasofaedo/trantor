@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.1 — 2026-11-12
+
+- "Usati qui" is always visible and explains what it will show (or that the Command Prompt can't report commands) instead of staying hidden until the first command
+- New command "Verifica integrazione della shell" (☰ menu and command palette) to check whether the active pane receives the folder and the commands from the shell
+
 ## 1.2.0 — 2026-11-12
 
 - **Per-folder command history**: every command is remembered together with the folder it ran in. The sidebar shows the ones used most in the current folder ("Usati qui"); Ctrl+H searches them, including parent folders of the project. Click inserts, ▶ runs, Shift+click runs in a new pane

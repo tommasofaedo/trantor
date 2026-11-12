@@ -66,6 +66,7 @@ const saveLayouts = () => window.yt.saveStore('layouts', LAYOUTS.data);
 // -------------------------------------------------------------------------
 function onShellEvent(pane, data) {
   const f = data.split(';');
+  pane.integ[f[0] === 'start' ? 'start' : 'cmd']++;
   if (f[0] === 'start') {
     pane.running = b64dec(f[1]).trim() || null;
     return;
@@ -153,8 +154,16 @@ function renderDirCommands() {
   const sec = $('#sec-commands');
   if (!sec) return;
   const list = commandsFor(S.sidebarDir);
-  sec.classList.toggle('hidden', !list.length);
-  if (!list.length) return;
+  sec.classList.toggle('hidden', !S.sidebarDir);
+  if (!list.length) {
+    const p = focusedPane();
+    const msg = p && p.profile.kind === 'cmd'
+      ? 'Il Prompt dei comandi non comunica i comandi eseguiti: per la cronologia usa PowerShell, Git Bash o WSL.'
+      : 'I comandi che lanci in questa cartella compariranno qui (esclusi cd, dir, ls, cls).';
+    $('#sb-commands').innerHTML = `<div class="sb-empty">${msg}</div>`;
+    S.dirCmdView = [];
+    return;
+  }
   const top = list.slice(0, 6);
   $('#sb-commands').innerHTML = top.map((e, i) =>
     `<li class="cmd-item" data-i="${i}" title="${esc(cmdTooltip(e))}">` +
@@ -480,6 +489,36 @@ function openLayout(lay) {
     ? { type: 'split', dir: n.dir, ratio: n.ratio, a: res(n.a), b: res(n.b) }
     : { type: 'pane', profile: n.profile, cwd: n.abs || (n.rel ? joinPath(root, n.rel) : root), cmd: n.cmd };
   return newTab(null, null, res(lay.tree));
+}
+
+// -------------------------------------------------------------------------
+// Verifica dell'integrazione con la shell del pannello attivo
+// -------------------------------------------------------------------------
+function checkIntegration() {
+  const p = focusedPane();
+  if (!p) return;
+  const i = p.integ;
+  const yes = (n) => (n ? `sì (${n})` : 'no');
+  const rows = [
+    ['Shell', p.profile.name],
+    ['Trantor', S.info.version || '?'],
+    ['Cartella corrente ricevuta', yes(i.cwd)],
+    ['Avvio comandi ricevuto', yes(i.start)],
+    ['Fine comandi ricevuta', yes(i.cmd)],
+    ['Comandi salvati in questa cartella', String(commandsFor(p.cwd).length)]
+  ];
+  let verdict;
+  if (p.profile.kind === 'cmd') verdict = 'Il Prompt dei comandi comunica solo la cartella, non i comandi.';
+  else if (!i.cwd) verdict = 'La shell non sta comunicando con Trantor: prova a chiudere e riaprire il pannello.';
+  else if (!i.cmd) verdict = 'La cartella arriva ma i comandi no: lancia un comando diverso da cd/dir/ls e ricontrolla.';
+  else verdict = 'Tutto funziona.';
+  openPicker({
+    placeholder: 'Verifica integrazione della shell',
+    iconName: 'terminal',
+    hints: [['Esc', 'chiudi'], ['Invio', 'copia il risultato']],
+    source: async () => [...rows.map(([k, v]) => ({ label: k, kbd: v, icon: 'terminal' })), { label: verdict, icon: i.cmd || p.profile.kind === 'cmd' ? 'play' : 'close' }],
+    onPick: () => { window.yt.writeClipboard(rows.map((r) => r.join(': ')).join('\n') + '\n' + verdict); toast('Risultato copiato'); }
+  });
 }
 
 // -------------------------------------------------------------------------
