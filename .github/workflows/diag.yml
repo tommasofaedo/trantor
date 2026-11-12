@@ -14,6 +14,17 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm ci --ignore-scripts
-      - run: npm i --no-save --ignore-scripts @xterm/headless@5
+      - run: npm ci
+      - run: npm i --no-save @xterm/headless@5
       - run: node diag/probe.js
+      - name: App probe
+        run: |
+          npx electron diag/app-probe.js
+        timeout-minutes: 5
+        env:
+          ELECTRON_ENABLE_LOGGING: 1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: app-${{ matrix.os }}
+          path: diag/out
