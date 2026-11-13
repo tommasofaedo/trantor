@@ -74,6 +74,7 @@
           <section class="sb-section" id="sec-content">
             <h3><span>Contenuto</span><span class="h3-tools">
               <button class="icon-btn small run" id="sb-run" title="Apri nel terminale"></button>
+              <button class="icon-btn small" id="sb-browse" title="Sfoglia cartelle (Ctrl+Shift+O)"></button>
               <button class="icon-btn small" id="sb-copy" title="Copia (Ctrl+C)"></button>
               <button class="icon-btn small" id="sb-newdir" title="Nuova cartella"></button>
               <button class="icon-btn small" id="sb-newfile" title="Nuovo file"></button>
@@ -158,6 +159,15 @@
     </div>
   </div>
 
+  <!-- Sfoglia cartelle: albero completo -->
+  <div id="br-overlay" class="hidden">
+    <div id="br-dialog" role="dialog" aria-label="Sfoglia cartelle">
+      <div class="br-head"><b>Sfoglia cartelle</b><span id="br-path" class="mono"></span></div>
+      <div id="br-tree" tabindex="0"></div>
+      <div class="br-actions"><span class="br-hint">Doppio clic per aprire · frecce per muoverti</span><button id="br-close" class="btn-plain">Chiudi</button><button id="br-open" class="btn-accent">Apri nel terminale</button></div>
+    </div>
+  </div>
+
   <!-- Modulo generico (pulsanti di comando) -->
   <div id="form-overlay" class="hidden">
     <div id="form-dialog" role="dialog">
@@ -193,5 +203,6 @@
   <script src="transfer.js"></script>
   <script src="files.js"></script>
   <script src="quickbar.js"></script>
+  <script src="browse.js"></script>
 </body>
 </html>

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.3 — 2026-11-13
+
+- **Sfoglia cartelle** (button next to "Contenuto", Ctrl+Shift+O): a window with the full tree of drives and folders, already open on the current folder. Double-click or arrows to expand, then "Apri nel terminale" or "Chiudi"
+
 ## 1.6.2 — 2026-11-13
 
 - In the "Contenuto" list a click on a folder now only selects it (so it can be copied, renamed, deleted…); double-click opens it

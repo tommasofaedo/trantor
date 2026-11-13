@@ -53,6 +53,7 @@ Se mancano, l'app ripiega su Segoe UI e Cascadia Mono / Consolas.
 | `Ctrl+Shift+L` | Filtra il contenuto della cartella nella barra laterale |
 | `Ctrl+H` | Comandi usati in questa cartella |
 | `Ctrl+Shift+R` | Azioni del progetto |
+| `Ctrl+Shift+O` | Sfoglia cartelle (albero completo) |
 | `Ctrl+Shift+N` | Dispositivi in rete |
 | `Ctrl+Shift+A` | Digita in tutti i pannelli della scheda |
 | `Ctrl+Alt+Shift+frecce` | Scambia il pannello attivo con quello vicino |
@@ -103,7 +104,7 @@ Usa la scansione solo su reti che gestisci o per cui hai l'autorizzazione.
 
 La lista **Contenuto** della barra laterale funziona come un piccolo gestore di file:
 
-- pulsanti: **▶ apri nel terminale**, **copia**, **nuova cartella**, **nuovo file**, **incolla**, aggiorna, mostra file nascosti;
+- pulsanti: **▶ apri nel terminale**, **Sfoglia cartelle** (albero completo di tutte le unità, `Ctrl+Shift+O`: doppio clic per espandere, poi *Apri nel terminale*), **copia**, **nuova cartella**, **nuovo file**, **incolla**, aggiorna, mostra file nascosti;
 - selezione con clic, **Ctrl+clic** e **Shift+clic**: sotto il titolo compare una barra con **copia, taglia, rinomina, duplica, zip, elimina**; le stesse azioni, più incolla ed estrai, sono nel menu del tasto destro;
 - da tastiera sulla lista: `Ctrl+C` / `Ctrl+X` / `Ctrl+V`, `F2` rinomina, `Canc` elimina, `Ctrl+A` seleziona tutto;
 - trascina gli elementi su una cartella per spostarli (`Ctrl` per copiarli); i file trascinati da Esplora file vengono copiati;

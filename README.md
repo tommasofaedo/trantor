@@ -56,6 +56,7 @@ Windows 10 and 11, 64-bit. Nothing else to install. Older versions and release n
 | `Ctrl+Shift+L` | Filter the current folder in the sidebar |
 | `Ctrl+H` | Commands used in this folder |
 | `Ctrl+Shift+R` | Project actions |
+| `Ctrl+Shift+O` | Browse folders (full tree) |
 | `Ctrl+Shift+N` | Network devices |
 | `Ctrl+Shift+A` | Type in all panes of the tab |
 | `Ctrl+Alt+Shift+Arrows` | Swap the active pane with its neighbour |
@@ -103,7 +104,7 @@ Scan only networks you manage or are authorized to test.
 
 The **Contenuto** list of the sidebar works like a small file manager:
 
-- toolbar: **▶ open in terminal**, **copy**, **new folder**, **new file**, **paste**, refresh, show hidden files;
+- toolbar: **▶ open in terminal**, **Sfoglia cartelle** (full folder tree of all drives, `Ctrl+Shift+O`: double-click to expand, then *Apri nel terminale*), **copy**, **new folder**, **new file**, **paste**, refresh, show hidden files;
 - select with click, **Ctrl+click** and **Shift+click**: a bar with **copy, cut, rename, duplicate, zip, delete** appears under the title; the same actions are in the right-click menu, together with paste and extract;
 - keyboard on the list: `Ctrl+C` / `Ctrl+X` / `Ctrl+V`, `F2` rename, `Del` delete, `Ctrl+A` select all;
 - drag items onto a folder to move them (`Ctrl` to copy); files dragged from Explorer are copied;

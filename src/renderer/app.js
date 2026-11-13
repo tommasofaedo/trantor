@@ -1013,6 +1013,7 @@ function commands() {
   const p = focusedPane();
   const list = [
     { label: 'Salta a cartella', icon: 'jump', kbd: 'Ctrl+G', run: openJump },
+    { label: 'Sfoglia cartelle', icon: 'tree', kbd: 'Ctrl+Shift+O', run: openBrowse },
     { label: 'Filtra cartella corrente', icon: 'search', kbd: 'Ctrl+Shift+L', run: focusSidebarFilter },
     { label: 'Comandi usati in questa cartella', icon: 'history', kbd: 'Ctrl+H', run: openDirCommands },
     { label: 'Azioni del progetto', icon: 'box', kbd: 'Ctrl+Shift+R', run: openProjectActions },
@@ -1083,6 +1084,7 @@ function showShortcuts() {
   const rows = [
     ['Ctrl+G', 'Salta a cartella (fuzzy su preferiti, recenti, sottocartelle)'],
     ['Ctrl+Shift+L', 'Filtra il contenuto della cartella nella barra laterale'],
+    ['Ctrl+Shift+O', 'Sfoglia cartelle (albero completo)'],
     ['Ctrl+H', 'Comandi usati in questa cartella'],
     ['Ctrl+Shift+R', 'Azioni del progetto (npm, docker, make…)'],
     ['Ctrl+Shift+N', 'Dispositivi in rete'],
@@ -1238,6 +1240,7 @@ function handleShortcut(e, pane) {
       case 'KeyP': return run(openPalette);
       case 'KeyR': return run(openProjectActions);
       case 'KeyA': return run(toggleSyncInput);
+      case 'KeyO': return run(openBrowse);
       case 'KeyN': return run(toggleNetView);
       case 'KeyT': return run(() => newTab());
       case 'KeyD': return run(() => splitPane(null, 'h'));
@@ -1398,6 +1401,7 @@ async function init() {
   setupTransfer();
   setupFiles();
   setupQuickbar();
+  setupBrowse();
   window.yt.admin.info().then((i) => { S.isAdmin = !!i.isAdmin; if (S.isAdmin) document.body.classList.add('is-admin'); });
 
   try { await document.fonts.load(`${S.cfg.fontSize}px ${S.cfg.fontFamily}`); } catch {}
