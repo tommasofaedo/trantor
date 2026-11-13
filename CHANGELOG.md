@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.1 — 2026-11-13
+
+- Fixed the release build on GitHub's Windows runners (the 1.5.0 executables were never produced). Same features as 1.5.0
+
 ## 1.5.0 — 2026-11-12
 
 - **Browse folders freely in the sidebar**: a click on a folder opens it only in the sidebar, the terminal stays where it is. Double-click (or Enter in the filter, or right-click → "Apri nel terminale") moves the terminal there too. While you browse, a bar shows where the terminal is, with "Apri qui" and "Torna"; `cd` in the terminal doesn't pull the sidebar away. → in the filter enters the selected folder in the sidebar only
