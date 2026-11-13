@@ -78,7 +78,7 @@ Windows 10 and 11, 64-bit. Nothing else to install. Older versions and release n
 | `Ctrl+Shift+P` | Command palette |
 | `F1` | Shortcut list |
 
-**Sidebar**: click a folder to browse it **without moving the terminal**; double-click (or right-click → *Apri nel terminale*) to open it in the terminal too. While you browse, a bar shows where the terminal is, with **Apri qui** and **Torna**. `Ctrl`+click or middle-click = new tab · `Shift`+click = split right · `Alt`+click = split down. Prefer the old behaviour? Turn on *Un clic su una cartella sposta il terminale* in the ☰ menu.
+**Sidebar**: in the **Contenuto** list a click **selects** a file or folder and a double-click opens it (a folder opens in the sidebar, the terminal stays where it is). The **▶** button next to "Contenuto" opens in the terminal the selected folder, or the one shown. Bookmarks, recent folders and the breadcrumb open with a single click; double-click there opens the folder in the terminal too. While you browse, a bar shows where the terminal is, with **Apri qui** and **Torna**. Middle-click = new tab. Want opening a folder to move the terminal as well? Turn on *Aprire una cartella sposta anche il terminale* in the ☰ menu.
 
 **Jump to folder** moves the terminal directly: Enter = current pane · `Ctrl`+Enter = new tab · `Shift`+Enter = split right · `Alt`+Enter = split down.
 
@@ -103,7 +103,7 @@ Scan only networks you manage or are authorized to test.
 
 The **Contenuto** list of the sidebar works like a small file manager:
 
-- toolbar: **new folder**, **new file**, **paste**, refresh, show hidden files;
+- toolbar: **▶ open in terminal**, **copy**, **new folder**, **new file**, **paste**, refresh, show hidden files;
 - select with click, **Ctrl+click** and **Shift+click**: a bar with **copy, cut, rename, duplicate, zip, delete** appears under the title; the same actions are in the right-click menu, together with paste and extract;
 - keyboard on the list: `Ctrl+C` / `Ctrl+X` / `Ctrl+V`, `F2` rename, `Del` delete, `Ctrl+A` select all;
 - drag items onto a folder to move them (`Ctrl` to copy); files dragged from Explorer are copied;

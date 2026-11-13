@@ -643,7 +643,7 @@ function renderFollowBar() {
 function toggleSidebarMovesTerminal() {
   S.cfg.sidebarMovesTerminal = !S.cfg.sidebarMovesTerminal;
   window.yt.saveConfig({ sidebarMovesTerminal: S.cfg.sidebarMovesTerminal });
-  toast(S.cfg.sidebarMovesTerminal ? 'Un clic su una cartella sposta anche il terminale' : 'Un clic su una cartella la apre solo nella barra laterale');
+  toast(S.cfg.sidebarMovesTerminal ? 'Aprire una cartella sposta anche il terminale' : 'Aprire una cartella la mostra solo nella barra laterale');
 }
 
 async function showSidebarDir(dir, force) {
@@ -809,12 +809,7 @@ function setupSidebar() {
   const list = $('#sb-list');
   const entryAt = (li) => filteredEntries()[+li.dataset.i];
   list.addEventListener('click', onListClick);
-  list.addEventListener('dblclick', (e) => {
-    if (e.target.closest('input.rename')) return;
-    if (!e.target.closest('li.file')) { sidebarDoubleClick(); return; }
-    const li = e.target.closest('li.file'); if (!li) return;
-    window.yt.openPath(joinPath(S.sidebarDir, entryAt(li).name));
-  });
+  list.addEventListener('dblclick', onListDoubleClick);
   list.addEventListener('auxclick', (e) => {
     const li = e.target.closest('li.dir'); if (li && e.button === 1) openDir(joinPath(S.sidebarDir, entryAt(li).name), 'tab');
   });
@@ -1058,7 +1053,7 @@ function commands() {
     { label: 'Aumenta carattere', icon: 'plus', kbd: 'Ctrl+=', run: () => setFontSize(S.cfg.fontSize + 1) },
     { label: 'Riduci carattere', icon: 'minimize', kbd: 'Ctrl+-', run: () => setFontSize(S.cfg.fontSize - 1) },
     { label: 'Carattere predefinito', icon: 'terminal', kbd: 'Ctrl+0', run: () => setFontSize(14) },
-    { label: `Un clic su una cartella sposta il terminale: ${S.cfg.sidebarMovesTerminal ? 'sì' : 'no'}`, icon: 'folder', run: toggleSidebarMovesTerminal },
+    { label: `Aprire una cartella nella barra laterale sposta anche il terminale: ${S.cfg.sidebarMovesTerminal ? 'sì' : 'no'}`, icon: 'folder', run: toggleSidebarMovesTerminal },
     ...(S.browsing ? [{ label: 'Barra laterale: torna alla cartella del terminale', icon: 'terminal', run: followTerminal }, { label: 'Apri nel terminale la cartella della barra laterale', icon: 'terminal', run: () => openDir(S.sidebarDir, 'cd') }] : []),
     { label: `Suggerimenti e colori nella shell: ${S.cfg.shellEnhancements !== false ? 'attivo' : 'disattivo'}`, icon: 'command', run: toggleEnhancements },
     { label: `Ripristina sessione all’avvio: ${S.cfg.restoreSession ? 'attivo' : 'disattivo'}`, icon: 'clock', run: () => { S.cfg.restoreSession = !S.cfg.restoreSession; window.yt.saveConfig({ restoreSession: S.cfg.restoreSession }); toast(`Ripristino sessione ${S.cfg.restoreSession ? 'attivato' : 'disattivato'}`); } },
@@ -1092,7 +1087,8 @@ function showShortcuts() {
     ['Ctrl+Shift+R', 'Azioni del progetto (npm, docker, make…)'],
     ['Ctrl+Shift+N', 'Dispositivi in rete'],
     ['Alt+Su', 'Vai alla cartella superiore'],
-    ['Clic / doppio clic', 'Barra laterale: esplora la cartella / aprila anche nel terminale'],
+    ['Clic / doppio clic', 'Lista dei file: seleziona / apri la cartella o il file'],
+    ['▶ in «Contenuto»', 'Apri nel terminale la cartella selezionata o quella mostrata'],
     ['Alt+1…9', 'Vai al preferito n°'],
     ['Ctrl+Shift+D / E', 'Dividi pannello a destra / in basso'],
     ['Alt+Frecce', 'Sposta il focus tra i pannelli'],
@@ -1332,7 +1328,7 @@ function setupHeaderbar() {
       { label: 'Salta a cartella', icon: 'jump', kbd: 'Ctrl+G', run: openJump },
       '-',
       { label: 'Mostra file nascosti', icon: 'eye', check: S.cfg.showHidden, run: toggleHidden },
-      { label: 'Un clic su una cartella sposta il terminale', icon: 'folder', check: !!S.cfg.sidebarMovesTerminal, run: toggleSidebarMovesTerminal },
+      { label: 'Aprire una cartella sposta anche il terminale', icon: 'folder', check: !!S.cfg.sidebarMovesTerminal, run: toggleSidebarMovesTerminal },
       { label: 'Suggerimenti e colori nella shell', icon: 'command', check: S.cfg.shellEnhancements !== false, run: toggleEnhancements },
       { label: 'Ripristina sessione all’avvio', icon: 'clock', check: S.cfg.restoreSession, run: () => { S.cfg.restoreSession = !S.cfg.restoreSession; window.yt.saveConfig({ restoreSession: S.cfg.restoreSession }); } },
       '-',

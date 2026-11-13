@@ -20,9 +20,10 @@ function pickedEntries() {
 }
 function pickedPaths() { return pickedEntries().map((e) => joinPath(S.sidebarDir, e.name)); }
 
+// Clic = seleziona (file e cartelle) · Ctrl+clic = aggiungi/togli · Shift+clic = intervallo · doppio clic = apri
 function onListClick(e) {
   const li = e.target.closest('li[data-i]');
-  if (!li) { if (!e.ctrlKey) { resetPicked(); renderSidebarList(); } return; }
+  if (!li) { if (!e.ctrlKey) { resetPicked(); updatePickedView(); } return; }
   if (li.querySelector('input.rename')) return;
   const list = filteredEntries();
   const i = +li.dataset.i; const en = list[i];
@@ -30,20 +31,53 @@ function onListClick(e) {
   $('#sb-list').focus({ preventScroll: true });
   if (e.ctrlKey) {
     if (FS.picked.has(en.name)) FS.picked.delete(en.name); else FS.picked.add(en.name);
-    FS.anchor = i; S.sidebarSel = i; renderSidebarList(); return;
-  }
-  if (e.shiftKey && FS.anchor != null) {
+    FS.anchor = i;
+  } else if (e.shiftKey && FS.anchor != null) {
     const [a, b] = [Math.min(FS.anchor, i), Math.max(FS.anchor, i)];
     FS.picked = new Set(list.slice(a, b + 1).map((x) => x.name));
-    S.sidebarSel = i; renderSidebarList(); return;
+  } else {
+    FS.picked = new Set([en.name]); FS.anchor = i;
   }
-  FS.picked = new Set([en.name]); FS.anchor = i; S.sidebarSel = i;
-  if (en.isDir) { clearSidebarFilter(); sidebarOpen(joinPath(S.sidebarDir, en.name), e.altKey ? e : null); }
-  else renderSidebarList();
+  S.sidebarSel = i;
+  updatePickedView();
+}
+
+// Doppio clic: cartella → entra (nella barra laterale; con l'opzione attiva anche nel terminale) · file → apri
+function onListDoubleClick(e) {
+  if (e.target.closest('input.rename')) return;
+  const li = e.target.closest('li[data-i]'); if (!li) return;
+  const en = filteredEntries()[+li.dataset.i]; if (!en) return;
+  const full = joinPath(S.sidebarDir, en.name);
+  if (!en.isDir) { window.yt.openPath(full); return; }
+  clearSidebarFilter();
+  if (S.cfg.sidebarMovesTerminal) openDir(full, 'cd'); else browseTo(full);
+}
+
+// Aggiorna evidenziazione e barra di selezione senza ricreare la lista
+function updatePickedView() {
+  const list = filteredEntries();
+  document.querySelectorAll('#sb-list li[data-i]').forEach((li) => {
+    const en = list[+li.dataset.i];
+    li.classList.toggle('picked', !!en && FS.picked.has(en.name));
+    li.classList.toggle('sel', +li.dataset.i === S.sidebarSel);
+  });
+  renderSelBar();
+}
+
+// Pulsante ▶ dell'intestazione: apre nel terminale la cartella selezionata, o quella mostrata
+function runTargetDir() {
+  const sel = pickedEntries();
+  return sel.length === 1 && sel[0].isDir && FS.picked.size ? joinPath(S.sidebarDir, sel[0].name) : S.sidebarDir;
+}
+function updateHeaderButtons() {
+  const t = runTargetDir();
+  const run = $('#sb-run'); if (run) run.title = `Apri nel terminale: ${baseName(t) || t}`;
+  const cp = $('#sb-copy'); if (cp) { const n = FS.picked.size; cp.classList.toggle('dim', !n); cp.title = n ? `Copia ${n === 1 ? 'l’elemento selezionato' : n + ' elementi'} (Ctrl+C)` : 'Copia: seleziona prima uno o più elementi'; }
 }
 
 // Barra delle azioni sugli elementi selezionati (sotto il titolo "Contenuto")
 function renderSelBar() {
+  updateHeaderButtons();
   const bar = $('#sb-selbar');
   if (!bar) return;
   const names = filteredEntries().filter((e) => FS.picked.has(e.name));
@@ -231,7 +265,8 @@ function fileMenu(e) {
   const items = [];
   if (one && one.isDir) {
     items.push(
-      { label: 'Apri nel terminale', icon: 'terminal', kbd: 'Doppio clic', run: () => openDir(full, 'cd') },
+      { label: 'Apri', icon: 'folder', kbd: 'Doppio clic', run: () => { clearSidebarFilter(); browseTo(full); } },
+      { label: 'Apri nel terminale', icon: 'play', run: () => openDir(full, 'cd') },
       { label: 'Apri in nuova scheda', icon: 'plus', run: () => openDir(full, 'tab') },
       { label: 'Apri in un pannello a destra', icon: 'splitH', run: () => openDir(full, 'h') },
       { label: 'Apri terminale come amministratore qui', icon: 'shield', run: () => openAdminTerminal(full) },
@@ -310,6 +345,8 @@ function setupFiles() {
   const list = $('#sb-list');
   list.tabIndex = 0;
   list.addEventListener('keydown', onListKey);
+  $('#sb-run').innerHTML = icon('play'); $('#sb-run').onclick = () => openDir(runTargetDir(), 'cd');
+  $('#sb-copy').innerHTML = icon('copy'); $('#sb-copy').onclick = () => { if (FS.picked.size) copySel('copy'); else toast('Seleziona prima uno o più elementi da copiare'); };
   $('#sb-newdir').innerHTML = icon('folderPlus'); $('#sb-newdir').onclick = newFolder;
   $('#sb-newfile').innerHTML = icon('filePlus'); $('#sb-newfile').onclick = newFile;
   $('#sb-paste').innerHTML = icon('paste'); $('#sb-paste').onclick = () => pasteInto();

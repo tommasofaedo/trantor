@@ -471,3 +471,6 @@ body.is-admin .admin-badge { display: inline-flex; }
 #sb-selbar button:hover { background: rgba(255,255,255,.12); color: #fff; }
 #sb-selbar button.danger:hover { background: #4b282c; color: #FF7A71; }
 #sb-selbar button .ico { width: 14px; height: 14px; }
+.sb-section h3 .h3-tools .icon-btn.run { color: var(--accent-link); }
+.sb-section h3 .h3-tools .icon-btn.run:hover { background: var(--accent); color: #fff; }
+.sb-section h3 .h3-tools .icon-btn.dim { opacity: .4; }

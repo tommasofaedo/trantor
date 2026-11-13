@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.6.2 — 2026-11-13
+
+- In the "Contenuto" list a click on a folder now only selects it (so it can be copied, renamed, deleted…); double-click opens it
+- New buttons next to "Contenuto": ▶ opens in the terminal the selected folder (or the one shown), and Copy
+
 ## 1.6.1 — 2026-11-13
 
 - Selection bar under "Contenuto": when items are selected, buttons for copy, cut, rename, duplicate, zip/extract, delete and deselect appear

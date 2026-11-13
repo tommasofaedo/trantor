@@ -75,7 +75,7 @@ Se mancano, l'app ripiega su Segoe UI e Cascadia Mono / Consolas.
 | `Ctrl+Shift+P` | Palette comandi |
 | `F1` | Elenco scorciatoie |
 
-**Barra laterale**: un clic su una cartella la apre **solo nella barra laterale**, il terminale resta dov'è; doppio clic (oppure tasto destro → *Apri nel terminale*) la apre anche nel terminale. Mentre esplori, una barra mostra dove si trova il terminale, con **Apri qui** e **Torna**. `Ctrl`+clic o clic centrale = nuova scheda · `Shift`+clic = pannello a destra · `Alt`+clic = pannello sotto. Preferisci il comportamento di prima? Attiva *Un clic su una cartella sposta il terminale* nel menu ☰.
+**Barra laterale**: nella lista **Contenuto** un clic **seleziona** un file o una cartella e il doppio clic lo apre (una cartella si apre nella barra laterale, il terminale resta dov'è). Il pulsante **▶** accanto a "Contenuto" apre nel terminale la cartella selezionata, o quella mostrata. Preferiti, recenti e percorso in alto si aprono con un clic; lì il doppio clic apre la cartella anche nel terminale. Mentre esplori, una barra mostra dove si trova il terminale, con **Apri qui** e **Torna**. Clic centrale = nuova scheda. Vuoi che aprire una cartella sposti anche il terminale? Attiva *Aprire una cartella sposta anche il terminale* nel menu ☰.
 
 **Salta a cartella** sposta direttamente il terminale: Invio = pannello corrente · `Ctrl`+Invio = nuova scheda · `Shift`+Invio = pannello a destra · `Alt`+Invio = pannello sotto.
 Puoi anche **trascinare una cartella da Esplora file** dentro un pannello per entrarci (un file trascinato inserisce il suo percorso).
@@ -103,7 +103,7 @@ Usa la scansione solo su reti che gestisci o per cui hai l'autorizzazione.
 
 La lista **Contenuto** della barra laterale funziona come un piccolo gestore di file:
 
-- pulsanti: **nuova cartella**, **nuovo file**, **incolla**, aggiorna, mostra file nascosti;
+- pulsanti: **▶ apri nel terminale**, **copia**, **nuova cartella**, **nuovo file**, **incolla**, aggiorna, mostra file nascosti;
 - selezione con clic, **Ctrl+clic** e **Shift+clic**: sotto il titolo compare una barra con **copia, taglia, rinomina, duplica, zip, elimina**; le stesse azioni, più incolla ed estrai, sono nel menu del tasto destro;
 - da tastiera sulla lista: `Ctrl+C` / `Ctrl+X` / `Ctrl+V`, `F2` rinomina, `Canc` elimina, `Ctrl+A` seleziona tutto;
 - trascina gli elementi su una cartella per spostarli (`Ctrl` per copiarli); i file trascinati da Esplora file vengono copiati;
