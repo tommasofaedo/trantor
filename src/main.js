@@ -1,6 +1,8 @@
 // Trantor — processo principale Electron
 // Gestisce finestra, pseudo-terminali (ConPTY via node-pty), filesystem e configurazione.
 
+// più thread per le operazioni sui file: un percorso di rete lento (VPN) non blocca tutto il resto
+process.env.UV_THREADPOOL_SIZE = process.env.UV_THREADPOOL_SIZE || '16';
 const { app, BrowserWindow, ipcMain, shell, clipboard, webContents, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
@@ -15,6 +17,33 @@ try {
 }
 
 const isWin = process.platform === 'win32';
+
+// ---------------------------------------------------------------------------
+// Registro diagnostico (%APPDATA%\Trantor\trantor.log) e gestione degli errori:
+// un errore imprevisto viene scritto nel registro invece di chiudere l'app.
+// ---------------------------------------------------------------------------
+let logFile = null;
+function log(...parts) {
+  try {
+    if (!logFile) logFile = path.join(app.getPath('userData'), 'trantor.log');
+    fs.mkdirSync(path.dirname(logFile), { recursive: true });
+    try { if (fs.statSync(logFile).size > 1024 * 1024) fs.renameSync(logFile, logFile + '.1'); } catch {}
+    const line = parts.map((p) => (p instanceof Error ? (p.stack || p.message) : typeof p === 'string' ? p : JSON.stringify(p))).join(' ');
+    fs.appendFileSync(logFile, `${new Date().toISOString()} ${line}\n`);
+  } catch {}
+}
+process.on('uncaughtException', (err) => log('[errore non gestito]', err));
+process.on('unhandledRejection', (err) => log('[promessa rifiutata]', err));
+
+// Attende al massimo `ms`: i percorsi di rete irraggiungibili (VPN, unità mappate) non bloccano l'app
+function withTimeout(promise, ms, fallback) {
+  return Promise.race([promise.catch(() => fallback), new Promise((r) => setTimeout(() => r(fallback), ms))]);
+}
+const isUNC = (p) => /^\\\\/.test(p || '');
+async function isDirAsync(p, ms = 1500) {
+  if (!p) return false;
+  return withTimeout(fs.promises.stat(p).then((st) => st.isDirectory()), ms, false);
+}
 const CONFIG_FILE = () => path.join(app.getPath('userData'), 'config.json');
 const ptys = new Map(); // id -> { proc, shellKind }
 let win;
@@ -72,6 +101,7 @@ function saveConfig(cfg) {
 function which(exe) {
   const dirs = (process.env.PATH || '').split(path.delimiter);
   for (const d of dirs) {
+    if (!d || isUNC(d)) continue;
     const p = path.join(d, exe);
     try { if (fs.statSync(p).isFile()) return p; } catch {}
   }
@@ -354,6 +384,21 @@ function createWindow(opts = {}) {
 
 const winOf = (e) => BrowserWindow.fromWebContents(e.sender);
 
+const reloads = [];
+app.on('render-process-gone', (_e, wc, details) => {
+  log('[finestra terminata]', details);
+  if (details.reason === 'clean-exit') return;
+  const now = Date.now();
+  while (reloads.length && now - reloads[0] > 60000) reloads.shift();
+  if (reloads.length >= 3) { log('[finestra] troppi riavvii, mi fermo'); return; }
+  reloads.push(now);
+  // le shell della finestra terminata verrebbero orfane: le chiudiamo prima di ricaricare
+  for (const [id, p] of ptys) if (p.ownerId === wc.id) { try { p.proc.kill(); } catch {} ptys.delete(id); }
+  setTimeout(() => { if (!wc.isDestroyed()) wc.reload(); }, 800);
+});
+app.on('child-process-gone', (_e, details) => log('[processo terminato]', details));
+app.on('ready', () => log(`[avvio] Trantor ${app.getVersion()} · Windows ${os.release()} · Electron ${process.versions.electron}`));
+
 // Una sola istanza: un secondo avvio apre una nuova scheda nella finestra esistente
 if (!app.requestSingleInstanceLock()) {
   app.quit();
@@ -406,11 +451,13 @@ function ptySend(entry, channel, ...args) {
   if (wc && !wc.isDestroyed()) wc.send(channel, ...args);
 }
 
-ipcMain.handle('pty:spawn', (e, { id, profile, cwd, cols, rows, enhance }) => {
+ipcMain.handle('pty:spawn', async (e, { id, profile, cwd, cols, rows, enhance }) => {
   let startDir = cwd;
-  try { if (!startDir || !fs.statSync(startDir).isDirectory()) startDir = os.homedir(); } catch { startDir = os.homedir(); }
+  if (!(await isDirAsync(startDir))) { if (startDir) log('[avvio shell] cartella non raggiungibile, uso la home:', startDir); startDir = os.homedir(); }
   const { file, args, env } = buildSpawn(profile, startDir, enhance !== false);
-  const proc = pty.spawn(file, args, {
+  let proc;
+  try {
+  proc = pty.spawn(file, args, {
     name: 'xterm-256color',
     cols: cols || 100,
     rows: rows || 30,
@@ -418,6 +465,10 @@ ipcMain.handle('pty:spawn', (e, { id, profile, cwd, cols, rows, enhance }) => {
     env,
     useConpty: true
   });
+  } catch (err) {
+    log('[avvio shell] errore', profile && profile.exe, err);
+    throw new Error(`Impossibile avviare ${profile ? profile.name : 'la shell'}: ${err.message}`);
+  }
   const entry = { proc, kind: profile.kind, ownerId: e.sender.id, queue: null };
   ptys.set(id, entry);
   proc.onData((data) => ptySend(entry, 'pty:data', id, data));
@@ -511,7 +562,7 @@ function getUpdater() {
   autoUpdater.on('update-not-available', () => set({ state: 'none' }));
   autoUpdater.on('download-progress', (p) => set({ state: 'downloading', progress: Math.round(p.percent || 0) }));
   autoUpdater.on('update-downloaded', (i) => set({ state: 'ready', version: i.version }));
-  autoUpdater.on('error', (e) => set({ state: 'error', error: String((e && e.message) || e).split('\n')[0].slice(0, 300) }));
+  autoUpdater.on('error', (e) => { log('[aggiornamenti]', e); set({ state: 'error', error: String((e && e.message) || e).split('\n')[0].slice(0, 300) }); });
   updater = autoUpdater;
   return updater;
 }
@@ -710,7 +761,7 @@ function goActions(dir) {
 }
 
 ipcMain.handle('project:detect', async (_e, start) => {
-  try { if (!fs.statSync(start).isDirectory()) return null; } catch { return null; }
+  if (isUNC(start) || !(await isDirAsync(start, 1000))) return null;
   const home = os.homedir();
   const gitRoot = findUp(start, (d) => exists(path.join(d, '.git')));
   const stop = gitRoot || null;
@@ -783,14 +834,13 @@ ipcMain.handle('fs:walkDirs', async (_e, root, depth = 2, limit = 1500) => {
   return results;
 });
 
-ipcMain.handle('fs:drives', () => {
+ipcMain.handle('fs:drives', async () => {
   if (!isWin) return ['/'];
-  const drives = [];
-  for (let c = 65; c <= 90; c++) {
-    const d = String.fromCharCode(c) + ':\\';
-    try { fs.accessSync(d); drives.push(d); } catch {}
-  }
-  return drives;
+  const letters = [];
+  for (let c = 65; c <= 90; c++) letters.push(String.fromCharCode(c) + ':\\');
+  // controllo in parallelo; un'unità di rete irraggiungibile (VPN) viene saltata dopo 1,5 s
+  const ok = await Promise.all(letters.map((d) => withTimeout(fs.promises.access(d).then(() => true), 1500, false)));
+  return letters.filter((_, k) => ok[k]);
 });
 
 ipcMain.handle('dialog:chooseFiles', async (e) => {
@@ -867,7 +917,9 @@ ipcMain.handle('admin:relaunch', async () => {
   return r;
 });
 
-ipcMain.handle('fs:isDir', (_e, p) => { try { return fs.statSync(p).isDirectory(); } catch { return false; } });
+ipcMain.handle('fs:isDir', (_e, p) => isDirAsync(p));
+ipcMain.on('log:write', (_e, ...parts) => log('[interfaccia]', ...parts));
+ipcMain.handle('log:open', () => { log('[registro aperto dall’utente]'); return shell.openPath(path.join(app.getPath('userData'), 'trantor.log')); });
 ipcMain.handle('fs:resolve', (_e, base, rel) => path.resolve(base, rel));
 ipcMain.handle('fs:parent', (_e, p) => path.dirname(p));
 ipcMain.handle('fs:openExternal', (_e, p) => shell.openPath(p));

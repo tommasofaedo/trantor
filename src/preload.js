@@ -37,6 +37,10 @@ contextBridge.exposeInMainWorld('yt', {
   updateInstall: () => ipcRenderer.invoke('update:install'),
   onUpdateState: (cb) => ipcRenderer.on('update:state', (_e, s) => cb(s)),
 
+  // registro diagnostico
+  log: (...parts) => ipcRenderer.send('log:write', ...parts),
+  openLog: () => ipcRenderer.invoke('log:open'),
+
   // operazioni sui file
   files: {
     mkdir: (dir, name) => ipcRenderer.invoke('files:mkdir', dir, name),

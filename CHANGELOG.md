@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.6.4 — 2026-11-13
+
+- Fix: the app could crash or freeze at startup with a VPN active. Network drives, network folders in PATH and an unreachable last folder are now checked asynchronously with a short timeout instead of blocking the app
+- Network interfaces read safely (some VPN adapters make the system call fail)
+- Diagnostic log in `%APPDATA%\Trantor\trantor.log` (menu → "Registro diagnostico"): unexpected errors are logged instead of closing the app; a crashed window is reloaded automatically
+
 ## 1.6.3 — 2026-11-13
 
 - **Sfoglia cartelle** (button next to "Contenuto", Ctrl+Shift+O): a window with the full tree of drives and folders, already open on the current folder. Double-click or arrows to expand, then "Apri nel terminale" or "Chiudi"

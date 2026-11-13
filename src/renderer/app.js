@@ -1061,6 +1061,7 @@ function commands() {
     ...S.profiles.map((pr) => ({ label: `Shell predefinita: ${pr.name}`, icon: pr.icon, tag: defaultProfile().id === pr.id ? 'attuale' : null, run: () => { S.cfg.defaultProfile = pr.id; window.yt.saveConfig({ defaultProfile: pr.id }); toast(`${pr.name} è ora la shell predefinita`); } })),
     { label: 'Scorciatoie da tastiera', icon: 'command', kbd: 'F1', run: showShortcuts },
     { label: 'Verifica integrazione della shell', icon: 'terminal', run: checkIntegration },
+    { label: 'Apri il registro diagnostico', icon: 'file', run: () => window.yt.openLog() },
     { label: 'Controlla aggiornamenti', icon: 'up', run: () => checkUpdates(true) },
     { label: `Aggiornamenti automatici: ${S.cfg.autoUpdate !== false ? 'attivi' : 'disattivati'}`, icon: 'up', run: toggleAutoUpdate },
     { label: `Informazioni su Trantor ${S.info.version || ''}`, icon: 'terminal', run: () => toast(`Trantor ${S.info.version || ''} · licenza MIT`) }
@@ -1337,6 +1338,7 @@ function setupHeaderbar() {
       '-',
       { label: 'Scorciatoie da tastiera', icon: 'command', kbd: 'F1', run: showShortcuts },
       { label: 'Verifica integrazione della shell', icon: 'terminal', run: checkIntegration },
+      { label: 'Registro diagnostico', icon: 'file', run: () => window.yt.openLog() },
       { label: 'Controlla aggiornamenti', icon: 'up', run: () => checkUpdates(true) }
     ], r.right - 260, r.bottom + 6);
   };
@@ -1382,8 +1384,20 @@ window.yt.onExit((id, code) => {
 // =========================================================================
 // Avvio
 // =========================================================================
+// Errori dell'interfaccia nel registro diagnostico
+window.addEventListener('error', (e) => { try { window.yt.log(String(e.message), `${e.filename}:${e.lineno}`, e.error && e.error.stack ? e.error.stack : ''); } catch {} });
+window.addEventListener('unhandledrejection', (e) => { try { window.yt.log('promessa rifiutata', String(e.reason && e.reason.stack || e.reason)); } catch {} });
+
 // Avvio dopo il caricamento di tutti gli script (smart.js compreso)
 async function init() {
+  try { await initApp(); } catch (err) {
+    window.yt.log('avvio non riuscito', String(err && err.stack || err));
+    // ultima possibilità: almeno un terminale nella cartella utente
+    try { if (!S.tabs.length) await newTab(S.profiles[0], S.info && S.info.home); } catch {}
+    toast('Si è verificato un problema all’avvio: dettagli nel registro diagnostico (☰ → Registro diagnostico)');
+  }
+}
+async function initApp() {
   S.cfg = await window.yt.loadConfig();
   S.info = await window.yt.info();
   S.profiles = S.info.profiles;

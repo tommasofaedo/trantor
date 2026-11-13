@@ -39,7 +39,10 @@ const isIPv4 = (s) => /^(\d{1,3})(\.\d{1,3}){3}$/.test(s) && s.split('.').every(
 
 function interfaces() {
   const out = [];
-  for (const [name, addrs] of Object.entries(os.networkInterfaces())) {
+  // con alcune VPN (FortiClient, AnyConnect, GlobalProtect…) os.networkInterfaces() può generare un errore
+  let all = {};
+  try { all = os.networkInterfaces(); } catch { all = {}; }
+  for (const [name, addrs] of Object.entries(all)) {
     for (const a of addrs || []) {
       if (a.family !== 'IPv4' && a.family !== 4) continue;
       if (a.internal || a.address.startsWith('169.254.')) continue;
