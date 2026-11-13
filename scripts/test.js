@@ -46,6 +46,39 @@ async function t(name, fn) {
     assert.strictEqual(parseSsh('ssh -V'), null);
   });
 
+  await t('operazioni sui file', async () => {
+    const fo = require('../src/fileops.js');
+    const fs = require('fs'); const path = require('path'); const os = require('os');
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'trantor-test-'));
+    try {
+      const a = await fo.mkdir(root); const b = await fo.mkdir(root);
+      assert.strictEqual(path.basename(a), 'Nuova cartella'); assert.strictEqual(path.basename(b), 'Nuova cartella (2)');
+      const f = await fo.newFile(a, 'note.txt'); fs.writeFileSync(f, 'ciao');
+      const d1 = await fo.duplicate(f); const d2 = await fo.duplicate(f);
+      assert.strictEqual(path.basename(d1), 'note - Copia.txt'); assert.strictEqual(path.basename(d2), 'note - Copia (2).txt');
+      const r = await fo.rename(d2, 'altro.txt'); assert.strictEqual(path.basename(r), 'altro.txt');
+      await assert.rejects(fo.rename(r, 'note.txt'), /Esiste già/);
+      await assert.rejects(fo.rename(r, process.platform === 'win32' ? 'a:b' : 'a/b'));
+      const copied = await fo.copy([a], b); assert.ok(fs.existsSync(path.join(copied[0], 'note.txt')));
+      await assert.rejects(fo.copy([a], path.join(a)), /dentro sé stessa/);
+      await assert.rejects(fo.move([b], copied[0]), /dentro sé stessa/);
+      const moved = await fo.move([r], b); assert.ok(fs.existsSync(moved[0]) && !fs.existsSync(r));
+      const z = await fo.zip([f, d1], await fo.zipName([f, d1])); assert.strictEqual(path.basename(z), 'Archivio.zip');
+      const x = await fo.unzip(z); assert.strictEqual(fs.readFileSync(path.join(x, 'note.txt'), 'utf8'), 'ciao');
+    } finally { fs.rmSync(root, { recursive: true, force: true }); }
+  });
+
+  if (process.platform === 'win32') {
+    await t('appunti di Windows con i file (informativo)', async () => {
+      const fo = require('../src/fileops.js');
+      const f = require('path').join(require('os').tmpdir(), 'trantor-appunti.txt');
+      require('fs').writeFileSync(f, 'x');
+      const w = await fo.writeClipboardFiles([f]);
+      const r = await fo.readClipboardFiles();
+      console.log(`   scrittura: ${w} · lettura: ${JSON.stringify(r)}`);
+    });
+  }
+
   // Dispositivo Modbus finto su localhost
   const server = net.createServer((s) => {
     s.on('error', () => {});

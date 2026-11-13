@@ -204,6 +204,7 @@ function setupDirCommands() {
       { label: 'Esegui in un pannello a destra', icon: 'splitH', kbd: 'Shift+clic', run: () => runCommandIn(p, dir, it.c, 'h') },
       { label: 'Esegui in un pannello sotto', icon: 'splitV', kbd: 'Alt+clic', run: () => runCommandIn(p, dir, it.c, 'v') },
       '-',
+      { label: 'Crea un pulsante con questo comando', icon: 'play', run: () => editQuickButton(null, { cmd: it.c, root: S.project ? S.project.root : null }) },
       { label: 'Copia comando', icon: 'copy', run: () => { window.yt.writeClipboard(it.c); toast('Comando copiato'); } },
       { label: 'Dimentica questo comando', icon: 'close', run: () => forgetCommand(dir, it.c) }
     ], e.clientX, e.clientY);
@@ -278,6 +279,8 @@ const refreshProjectSoon = debounce(() => refreshProject(true), 500);
 // chiamata quando un pannello cambia cartella
 async function paneCwdChanged(pane) {
   const pr = await detectProjectCached(pane.cwd);
+  const root = pr ? pr.root : null;
+  if (root !== pane.projectRoot) { pane.projectRoot = root; if (pane === focusedPane()) renderQuickbar(); }
   updatePaneGit(pane, pr);
   maybeAutoVenv(pane, pr);
 }
@@ -398,7 +401,8 @@ function setupProjectSection() {
       { label: 'Esegui in un pannello a destra', icon: 'splitH', kbd: 'Shift+clic', run: () => runProjectAction(a, 'h') },
       { label: 'Esegui in un pannello sotto', icon: 'splitV', kbd: 'Alt+clic', run: () => runProjectAction(a, 'v') },
       { label: 'Esegui in una nuova scheda', icon: 'plus', kbd: 'Ctrl+clic', run: () => runProjectAction(a, 'tab') },
-      { label: 'Inserisci senza eseguire', icon: 'terminal', run: () => insertCommand(p, a.cmd) }
+      { label: 'Inserisci senza eseguire', icon: 'terminal', run: () => insertCommand(p, a.cmd) },
+      { label: 'Crea un pulsante con questa azione', icon: 'play', run: () => editQuickButton(null, { cmd: a.cmd, label: a.label.replace(/^(npm run|pnpm|yarn|bun run|make|docker compose|dotnet|cargo|go) /, ''), root: S.project ? S.project.root : null }) }
     ], e.clientX, e.clientY);
   });
 }

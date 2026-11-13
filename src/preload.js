@@ -37,6 +37,28 @@ contextBridge.exposeInMainWorld('yt', {
   updateInstall: () => ipcRenderer.invoke('update:install'),
   onUpdateState: (cb) => ipcRenderer.on('update:state', (_e, s) => cb(s)),
 
+  // operazioni sui file
+  files: {
+    mkdir: (dir, name) => ipcRenderer.invoke('files:mkdir', dir, name),
+    newFile: (dir, name) => ipcRenderer.invoke('files:newFile', dir, name),
+    rename: (p, name) => ipcRenderer.invoke('files:rename', p, name),
+    copy: (srcs, dest) => ipcRenderer.invoke('files:copy', srcs, dest),
+    move: (srcs, dest) => ipcRenderer.invoke('files:move', srcs, dest),
+    duplicate: (p) => ipcRenderer.invoke('files:duplicate', p),
+    zip: (paths) => ipcRenderer.invoke('files:zip', paths),
+    unzip: (p) => ipcRenderer.invoke('files:unzip', p),
+    trash: (paths) => ipcRenderer.invoke('files:trash', paths),
+    readClipboard: () => ipcRenderer.invoke('files:readClipboard'),
+    writeClipboard: (paths) => ipcRenderer.invoke('files:writeClipboard', paths)
+  },
+  // amministratore
+  admin: {
+    info: () => ipcRenderer.invoke('admin:info'),
+    runFile: (p) => ipcRenderer.invoke('admin:runFile', p),
+    externalShell: (dir, profile) => ipcRenderer.invoke('admin:externalShell', dir, profile),
+    relaunch: () => ipcRenderer.invoke('admin:relaunch')
+  },
+
   // file da caricare
   chooseFiles: () => ipcRenderer.invoke('dialog:chooseFiles'),
 

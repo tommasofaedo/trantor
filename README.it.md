@@ -14,6 +14,7 @@ Funzioni principali:
 - **Barra laterale cartelle** che segue il pannello attivo e permette di esplorare liberamente senza spostare il terminale: preferiti, recenti, unità, contenuto della cartella con filtro
 - **Salta a cartella** (`Ctrl+G`): ricerca fuzzy su preferiti, cartelle recenti (frecency, come `z`/`zoxide`), sottocartelle e unità
 - **Dispositivi in rete**: trova PLC, pannelli, router e server nella rete locale, riconosce Modbus, S7, EtherNet/IP, OPC UA, SSH e interfacce web, e legge i registri Modbus (solo lettura)
+- **File e pulsanti di comando**: copia, taglia, incolla, rinomina, zip ed elimina dalla barra laterale (anche con Esplora file), pulsanti per i comandi frequenti, digitazione in tutti i pannelli, terminali da amministratore
 - **Trasferire file via SSH**: trascina i file su un pannello remoto per caricarli, trascina fuori il nome di un file per scaricarlo
 - **Riorganizzare i pannelli**: trascina i pannelli per spostarli, scambiarli, portarli in un'altra scheda o staccarli in una nuova finestra senza fermare la shell
 - **Cartelle intelligenti**: ricorda i comandi che lanci in ogni cartella, riconosce i progetti (git, Node, Python, Docker, .NET…) con azioni a un clic e ripristina le disposizioni dei pannelli salvate per progetto
@@ -53,6 +54,7 @@ Se mancano, l'app ripiega su Segoe UI e Cascadia Mono / Consolas.
 | `Ctrl+H` | Comandi usati in questa cartella |
 | `Ctrl+Shift+R` | Azioni del progetto |
 | `Ctrl+Shift+N` | Dispositivi in rete |
+| `Ctrl+Shift+A` | Digita in tutti i pannelli della scheda |
 | `Ctrl+Alt+Shift+frecce` | Scambia il pannello attivo con quello vicino |
 | `Alt+Su` | Cartella superiore (con più pannelli: sposta il focus in su) |
 | `Alt+1…9` | Vai al preferito n° 1…9 |
@@ -96,6 +98,30 @@ Clic su un dispositivo per dettagli e azioni: SSH (scegliendo l'utente), interfa
 Usa la scansione solo su reti che gestisci o per cui hai l'autorizzazione.
 
 <br clear="right">
+
+## File
+
+La lista **Contenuto** della barra laterale funziona come un piccolo gestore di file:
+
+- pulsanti: **nuova cartella**, **nuovo file**, **incolla**, aggiorna, mostra file nascosti;
+- selezione con clic, **Ctrl+clic** e **Shift+clic**; tasto destro per **taglia, copia, incolla, rinomina, duplica, comprimi in ZIP, estrai, elimina**;
+- da tastiera sulla lista: `Ctrl+C` / `Ctrl+X` / `Ctrl+V`, `F2` rinomina, `Canc` elimina, `Ctrl+A` seleziona tutto;
+- trascina gli elementi su una cartella per spostarli (`Ctrl` per copiarli); i file trascinati da Esplora file vengono copiati;
+- copia e incolla funzionano anche con Esplora file: i file copiati lì si incollano in Trantor e viceversa.
+
+Gli elementi eliminati finiscono nel **Cestino**, dopo una conferma.
+
+## Pulsanti di comando
+
+Crea pulsanti per i comandi che usi spesso (`npm run build`, uno script di pubblicazione, `docker compose restart`…). Compaiono in una barra sopra i pannelli, ovunque o solo dentro un progetto, ed eseguono nel pannello attivo, in un nuovo pannello o in tutti i pannelli. Si creano dal menu ☰, dalla palette comandi, oppure con tasto destro → *Crea un pulsante* su un comando di "Usati qui" o su un'azione del progetto. Shift+clic esegue un pulsante in un nuovo pannello, Alt+clic in tutti i pannelli, tasto destro per modificarlo.
+
+`Ctrl+Shift+A` manda quello che scrivi a **tutti i pannelli della scheda** (come `synchronize-panes` di tmux); finché è attivo i pannelli hanno il bordo ambra.
+
+## Amministratore
+
+- Tasto destro su un `.exe`, `.bat`, `.cmd`, `.ps1` o `.msi` → **Esegui come amministratore**.
+- Tasto destro su una cartella → **Apri terminale come amministratore qui**. Windows non permette a un programma normale di ospitare una shell elevata, quindi Trantor usa [gsudo](https://github.com/gerardog/gsudo) se installato (`winget install gerardog.gsudo`, funziona anche su Windows 10) oppure il **sudo** di Windows 11 impostato su *In linea* (Impostazioni → Per sviluppatori); altrimenti apre una finestra PowerShell da amministratore separata, già in quella cartella. I pannelli elevati hanno il bordo rosso.
+- **Riavvia Trantor come amministratore** (palette comandi) riapre tutta l'app con privilegi elevati, mantenendo la sessione.
 
 ## Trasferire file (SSH)
 
@@ -228,8 +254,11 @@ src/
     panes.js         trascinare, scambiare, spostare e staccare i pannelli
     network.js       vista dispositivi in rete e lettura Modbus
     transfer.js      pannelli SSH e trasferimento file (scp)
+    files.js         operazioni sui file nella barra laterale, azioni da amministratore
+    quickbar.js      pulsanti di comando, digitazione in tutti i pannelli
     updates.js       pulsante di aggiornamento
   netscan.js         scansione di rete, riconoscimento servizi, Modbus TCP
+  fileops.js         copia, sposta, rinomina, zip, appunti dei file di Windows
 ```
 
 Configurazione, preferiti, cronologia e sessione sono salvati in `%APPDATA%\Trantor\config.json`.

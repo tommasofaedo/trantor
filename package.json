@@ -1,7 +1,7 @@
 {
   "name": "trantor",
   "productName": "Trantor",
-  "version": "1.5.1",
+  "version": "1.6.0",
   "description": "Trantor — a modern Windows terminal with tmux-style split panes, fast folder navigation and a Yaru Dark look",
   "main": "src/main.js",
   "author": "Trantor contributors",

@@ -407,3 +407,58 @@ button:focus:not(:focus-visible) { outline: none; }
 #sb-follow button[data-act="here"] { background: var(--accent); margin-left: auto; }
 #sb-follow button[data-act="here"]:hover { background: #0069D1; }
 #sb-term.hidden { display: none; }
+
+/* ------------------------------------------- Operazioni sui file nella lista */
+.sb-section h3 .h3-tools { display: flex; gap: 0; text-transform: none; }
+.sb-section h3 .h3-tools .icon-btn .ico { width: 14px; height: 14px; }
+#sb-list:focus { outline: none; }
+#sb-list:focus-visible li.sel { box-shadow: inset 0 0 0 1.5px var(--accent); }
+.sb-section li.picked { background: var(--accent-sel); color: #fff; }
+.sb-section li.picked .ico { color: rgba(255,255,255,.85); }
+.sb-section li.picked:hover { background: #0073E5; }
+.sb-section li.cut { opacity: .5; }
+.sb-section li input.rename { flex: 1; min-width: 0; height: 24px; border: 0; outline: 0; border-radius: 5px; padding: 0 6px; background: var(--base); color: var(--fg); box-shadow: inset 0 0 0 2px var(--accent); font: inherit; }
+
+/* ------------------------------------------------------------ Amministratore */
+.pane.admin { box-shadow: 0 0 0 1px #FF7A71, inset 0 0 0 1px var(--edge); }
+.pane.admin.focused { box-shadow: 0 0 0 1px #FF7A71, 0 0 0 3px rgba(255,122,113,.25); }
+.pane-header .p-admin { display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 8px; border-radius: 10px; background: #4b282c; color: #FF7A71; font-size: 11.5px; font-weight: 600; flex: none; }
+.pane-header .p-admin .ico { width: 12px; height: 12px; }
+.admin-badge { display: none; -webkit-app-region: no-drag; height: 24px; padding: 0 10px; border-radius: 12px; background: #4b282c; color: #FF7A71; font-size: 12px; font-weight: 600; align-items: center; }
+body.is-admin .admin-badge { display: inline-flex; }
+
+/* ------------------------------------------------- Pulsanti di comando */
+#main-col { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+#main-col #workspace { flex: 1; min-height: 0; }
+#quickbar { flex: none; display: flex; align-items: center; gap: 4px; padding: 6px 8px 0; overflow-x: auto; scrollbar-width: none; }
+#quickbar.hidden { display: none; }
+.qb { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 11px; border: 0; border-radius: 14px; background: var(--btn); color: var(--fg); font-size: 12.5px; white-space: nowrap; flex: none; }
+.qb:hover { background: var(--btn-hover); }
+.qb .ico { width: 12px; height: 12px; color: var(--accent-link); }
+.qb.qb-proj { box-shadow: inset 0 0 0 1px #1a4775; }
+.qb.qb-add { padding: 0 8px; background: transparent; color: var(--fg-dim); }
+.qb.qb-add:hover { background: var(--hover); color: var(--fg); }
+.qb.qb-add .ico { color: inherit; width: 14px; height: 14px; }
+.qb-spacer { flex: 1; }
+.qb.qb-sync { background: transparent; color: var(--fg-dim); }
+.qb.qb-sync.on { background: #554227; color: #F99B11; }
+.qb.qb-sync.on .ico { color: #F99B11; }
+.tab-view.synced .pane { box-shadow: 0 0 0 1px #F99B11, inset 0 0 0 1px var(--edge); }
+.tab-view.synced .pane.focused { box-shadow: 0 0 0 1px #F99B11, 0 0 0 3px rgba(249,155,17,.25); }
+
+/* Modulo generico */
+#form-overlay { position: fixed; inset: 0; z-index: 56; background: rgba(0,0,0,.35); display: flex; justify-content: center; align-items: flex-start; padding-top: 14vh; }
+#form-overlay.hidden { display: none; }
+#form-dialog { width: min(480px, 92vw); background: var(--menu); border-radius: var(--radius-lg); box-shadow: 0 0 0 1px rgba(0,0,0,.6), inset 0 0 0 1px var(--edge), 0 16px 48px rgba(0,0,0,.55); }
+.form-head { display: flex; align-items: center; gap: 10px; padding: 14px 18px 10px; border-bottom: 1px solid var(--borders); }
+.form-head .ico { color: var(--accent-link); }
+#form-fields { display: flex; flex-direction: column; gap: 10px; padding: 14px 18px; }
+#form-fields label { display: flex; flex-direction: column; gap: 5px; font-size: 11.5px; font-weight: 600; color: var(--fg-faint); }
+#form-fields input, #form-fields select { height: 32px; border: 0; outline: 0; border-radius: var(--radius); padding: 0 10px; background: var(--btn); color: var(--fg); font: 13px var(--ui-font); }
+#form-fields input.mono { font-family: var(--mono-font); }
+#form-fields input:focus, #form-fields select:focus { box-shadow: inset 0 0 0 2px var(--accent); }
+#form-fields select option { background: var(--menu); }
+.form-actions { display: flex; align-items: center; gap: 8px; padding: 0 18px 16px; }
+#form-error { flex: 1; color: #FF7A71; font-size: 12px; }
+.btn-plain { height: 30px; padding: 0 14px; border: 0; border-radius: var(--radius); background: var(--btn); color: var(--fg); }
+.btn-plain:hover { background: var(--btn-hover); }

@@ -37,6 +37,7 @@ Windows 10 and 11, 64-bit. Nothing else to install. Older versions and release n
 - **Shells detected automatically**: PowerShell 7, Windows PowerShell, Command Prompt, Git Bash, WSL.
 - **Explorer integration**: "Open in Trantor" context-menu entry, drag a folder onto a pane to `cd` into it.
 - **Network devices**: finds PLCs, panels, routers and servers on the local network, recognizes Modbus, S7, EtherNet/IP, OPC UA, SSH and web interfaces, and reads Modbus registers (read only).
+- **Files and command buttons**: copy, cut, paste, rename, zip and delete from the sidebar (also with Explorer), your own buttons for frequent commands, typing in all panes at once, administrator terminals.
 - **File transfers over SSH**: drag files onto a remote pane to upload them, drag a file name out of it to download.
 - **Rearrange panes**: drag panes to move, swap, send them to another tab or detach them into a new window without stopping the shell.
 - **Smart folders**: remembers the commands you run in each folder, recognizes projects (git, Node, Python, Docker, .NET…) with one-click actions, and restores saved pane layouts per project.
@@ -56,6 +57,7 @@ Windows 10 and 11, 64-bit. Nothing else to install. Older versions and release n
 | `Ctrl+H` | Commands used in this folder |
 | `Ctrl+Shift+R` | Project actions |
 | `Ctrl+Shift+N` | Network devices |
+| `Ctrl+Shift+A` | Type in all panes of the tab |
 | `Ctrl+Alt+Shift+Arrows` | Swap the active pane with its neighbour |
 | `Alt+Up` | Parent folder (moves focus up when there are several panes) |
 | `Alt+1…9` | Go to bookmark 1…9 |
@@ -96,6 +98,30 @@ Click a device for details and actions: SSH (choose the user), open the web inte
 Scan only networks you manage or are authorized to test.
 
 <br clear="right">
+
+## Files
+
+The **Contenuto** list of the sidebar works like a small file manager:
+
+- toolbar: **new folder**, **new file**, **paste**, refresh, show hidden files;
+- select with click, **Ctrl+click** and **Shift+click**; right-click for **cut, copy, paste, rename, duplicate, compress to ZIP, extract, delete**;
+- keyboard on the list: `Ctrl+C` / `Ctrl+X` / `Ctrl+V`, `F2` rename, `Del` delete, `Ctrl+A` select all;
+- drag items onto a folder to move them (`Ctrl` to copy); files dragged from Explorer are copied;
+- copy/paste works with Explorer too: files copied in Explorer can be pasted in Trantor and vice versa.
+
+Deleted items go to the **Recycle Bin** after a confirmation.
+
+## Command buttons
+
+Create buttons for the commands you run often (`npm run build`, a deploy script, `docker compose restart`…). They appear in a bar above the panes, either everywhere or only inside one project, and run in the active pane, in a new pane or in all panes. Create them from the ☰ menu, the command palette, or with right-click → *Crea un pulsante* on a command in "Usati qui" or on a project action. Shift+click runs a button in a new pane, Alt+click in all panes, right-click edits it.
+
+`Ctrl+Shift+A` makes what you type go to **all panes of the tab** (like tmux `synchronize-panes`); the panes get an amber outline while it is on.
+
+## Administrator
+
+- Right-click an `.exe`, `.bat`, `.cmd`, `.ps1` or `.msi` → **Esegui come amministratore**.
+- Right-click a folder → **Apri terminale come amministratore qui**. Windows doesn't let a normal program host an elevated shell, so Trantor uses [gsudo](https://github.com/gerardog/gsudo) if installed (`winget install gerardog.gsudo`, works on Windows 10 too) or the **sudo** of Windows 11 set to *Inline* (Settings → For developers); otherwise it opens a separate elevated PowerShell window in that folder. Elevated panes have a red outline.
+- **Riavvia Trantor come amministratore** (command palette) restarts the whole app elevated, keeping the session.
 
 ## File transfers (SSH)
 
@@ -227,8 +253,11 @@ src/
     panes.js           drag, swap, move and detach panes
     network.js         network devices view and Modbus reader
     transfer.js        SSH panes and file transfers (scp)
+    files.js           file operations in the sidebar, administrator actions
+    quickbar.js        command buttons, typing in all panes
     updates.js         update button
   netscan.js           network scan, service recognition, Modbus TCP
+  fileops.js           copy, move, rename, zip, Windows file clipboard
 scripts/
   ensure-electron.js   fallback Electron download
   check.js             syntax check (npm run lint)

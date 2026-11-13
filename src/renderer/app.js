@@ -131,6 +131,12 @@ class Pane {
       </div>
       <div class="pane-term"></div>`;
     this.termEl = this.el.querySelector('.pane-term');
+    if (profile.elevate) {
+      this.el.classList.add('admin');
+      const b = document.createElement('span'); b.className = 'p-admin'; b.innerHTML = `${icon('shield')}Amministratore`;
+      b.title = `Shell elevata tramite ${profile.elevate}`;
+      this.el.querySelector('.shell-ico').after(b);
+    }
     this.pathEl = this.el.querySelector('.p-path');
     this.titleEl = this.el.querySelector('.p-title');
     this.gitEl = this.el.querySelector('.p-git');
@@ -205,7 +211,7 @@ class Pane {
     this.term.parser.registerOscHandler(7777, (data) => { onShellEvent(this, data); return true; });
     this.term.onSelectionChange(() => { if (this.remote) showRemoteChip(this); });
     this.term.onTitleChange((t) => { this.title = t; this.titleEl.textContent = t; this.titleEl.title = t; renderTabs(); });
-    this.term.onData((d) => window.yt.write(this.id, d));
+    this.term.onData((d) => sendInput(this, d));
     this.term.attachCustomKeyEventHandler((e) => !handleShortcut(e, this));
 
     this.ro = new ResizeObserver(debounce(() => this.doFit(), 30));
@@ -377,6 +383,7 @@ function renderTab(tab) {
   if (tab.zoomed && S.panes.get(tab.zoomed)) view.appendChild(S.panes.get(tab.zoomed).el);
   else { tab.zoomed = null; view.appendChild(build(tab.root)); }
   for (const pid of all) S.panes.get(pid).el.classList.toggle('focused', pid === tab.focused);
+  if (tab === activeTab()) renderQuickbar();
   requestAnimationFrame(() => all.forEach((pid) => S.panes.get(pid).doFit()));
 }
 
@@ -402,7 +409,7 @@ function focusPane(pid, takeFocus = true) {
   for (const id of panesOf(tab.root)) S.panes.get(id).el.classList.toggle('focused', id === pid);
   if (tab.id !== S.activeTab) activateTab(tab.id);
   if (takeFocus) S.panes.get(pid).term.focus();
-  if (changed) { renderTabs(); syncSidebar(); renderDirCommands(); }
+  if (changed) { renderTabs(); syncSidebar(); renderDirCommands(); renderQuickbar(); }
 }
 
 async function splitPane(pid, dir, cwd, profile) {
@@ -641,6 +648,7 @@ function toggleSidebarMovesTerminal() {
 
 async function showSidebarDir(dir, force) {
   if (!force && samePath(S.sidebarDir, dir)) { renderLocation(); renderFollowBar(); return; }
+  if (!samePath(S.sidebarDir, dir)) resetPicked();
   S.sidebarDir = dir;
   renderLocation();
   renderFollowBar();
@@ -692,7 +700,7 @@ function renderSidebarList() {
   if (!list.length) { ul.innerHTML = `<div class="sb-empty">${$('#sb-filter').value ? 'Nessuna corrispondenza' : 'Cartella vuota'}</div>`; return; }
   const max = 600;
   ul.innerHTML = list.slice(0, max).map((e, i) =>
-    `<li draggable="true" class="${e.isDir ? 'dir' : 'file'} ${e.hidden ? 'hidden-entry' : ''} ${i === S.sidebarSel ? 'sel' : ''}" data-i="${i}" title="${esc(e.name)}">${icon(e.isDir ? 'folder' : 'file')}<span class="lbl">${esc(e.name)}</span>${gitMark(e)}</li>`
+    `<li draggable="true" class="${e.isDir ? 'dir' : 'file'} ${e.hidden ? 'hidden-entry' : ''} ${i === S.sidebarSel ? 'sel' : ''} ${FS.picked.has(e.name) ? 'picked' : ''} ${FS.clip && FS.clip.mode === 'cut' && FS.clip.paths.includes(joinPath(S.sidebarDir, e.name)) ? 'cut' : ''}" data-i="${i}" title="${esc(e.name)}">${icon(e.isDir ? 'folder' : 'file')}<span class="lbl">${esc(e.name)}</span>${gitMark(e)}</li>`
   ).join('') + (list.length > max ? `<div class="sb-empty">…altri ${list.length - max} elementi</div>` : '');
   ul.querySelector('li.sel')?.scrollIntoView({ block: 'nearest' });
 }
@@ -755,6 +763,7 @@ function dirMenu(path, x, y) {
     { label: 'Apri in nuova scheda', icon: 'plus', kbd: 'Ctrl+clic', run: () => openDir(path, 'tab') },
     { label: 'Apri in un pannello a destra', icon: 'splitH', kbd: 'Shift+clic', run: () => openDir(path, 'h') },
     { label: 'Apri in un pannello sotto', icon: 'splitV', kbd: 'Alt+clic', run: () => openDir(path, 'v') },
+    { label: 'Apri terminale come amministratore qui', icon: 'shield', run: () => openAdminTerminal(path) },
     '-',
     { label: isBookmarked(path) ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti', icon: 'star', run: () => toggleBookmark(path) },
     { label: 'Apri in Esplora file', icon: 'external', run: () => window.yt.openPath(path) },
@@ -798,13 +807,9 @@ function setupSidebar() {
 
   const list = $('#sb-list');
   const entryAt = (li) => filteredEntries()[+li.dataset.i];
-  list.addEventListener('click', (e) => {
-    const li = e.target.closest('li'); if (!li) return;
-    const en = entryAt(li); const full = joinPath(S.sidebarDir, en.name);
-    if (en.isDir) { clearSidebarFilter(); sidebarOpen(full, e); }
-    else { S.sidebarSel = +li.dataset.i; renderSidebarList(); }
-  });
+  list.addEventListener('click', onListClick);
   list.addEventListener('dblclick', (e) => {
+    if (e.target.closest('input.rename')) return;
     if (!e.target.closest('li.file')) { sidebarDoubleClick(); return; }
     const li = e.target.closest('li.file'); if (!li) return;
     window.yt.openPath(joinPath(S.sidebarDir, entryAt(li).name));
@@ -812,18 +817,7 @@ function setupSidebar() {
   list.addEventListener('auxclick', (e) => {
     const li = e.target.closest('li.dir'); if (li && e.button === 1) openDir(joinPath(S.sidebarDir, entryAt(li).name), 'tab');
   });
-  list.addEventListener('contextmenu', (e) => {
-    const li = e.target.closest('li'); if (!li) return; e.preventDefault();
-    const en = entryAt(li); const full = joinPath(S.sidebarDir, en.name);
-    if (en.isDir) return dirMenu(full, e.clientX, e.clientY);
-    const p = focusedPane();
-    showMenu([
-      { label: 'Inserisci percorso nel terminale', icon: 'terminal', run: () => { p.term.paste(quoteForShell(p.profile.kind, full) + ' '); p.term.focus(); } },
-      { label: 'Apri con l’app predefinita', icon: 'external', run: () => window.yt.openPath(full) },
-      { label: 'Mostra in Esplora file', icon: 'folder', run: () => window.yt.showInFolder(full) },
-      { label: 'Copia percorso', icon: 'copy', run: () => { window.yt.writeClipboard(full); toast('Percorso copiato'); } }
-    ], e.clientX, e.clientY);
-  });
+  list.addEventListener('contextmenu', (e) => { e.preventDefault(); fileMenu(e); });
   // Trascina un file dalla lista dentro un pannello → incolla il percorso
   list.addEventListener('mousedown', (e) => { if (e.detail > 1) e.preventDefault(); });
 
@@ -1033,10 +1027,17 @@ function commands() {
     { label: `Attiva da solo l’ambiente Python: ${S.cfg.autoVenv ? 'attivo' : 'disattivo'}`, icon: 'python', run: toggleAutoVenv },
     { label: 'Nuova scheda', icon: 'plus', kbd: 'Ctrl+Shift+T', run: () => newTab() },
     ...S.profiles.map((pr) => ({ label: `Nuova scheda: ${pr.name}`, icon: pr.icon, run: () => newTab(pr) })),
+    { label: 'Nuova scheda come amministratore', icon: 'shield', run: () => openAdminTerminal(p ? p.cwd : S.info.home) },
+    { label: 'Riavvia Trantor come amministratore', icon: 'shield', run: relaunchAsAdmin },
+    { label: 'Nuova cartella nella barra laterale', icon: 'folderPlus', run: newFolder },
+    { label: 'Nuovo file nella barra laterale', icon: 'filePlus', run: newFile },
     { label: 'Dividi a destra', icon: 'splitH', kbd: 'Ctrl+Shift+D', run: () => splitPane(null, 'h') },
     { label: 'Dividi in basso', icon: 'splitV', kbd: 'Ctrl+Shift+E', run: () => splitPane(null, 'v') },
     ...S.profiles.map((pr) => ({ label: `Dividi a destra con ${pr.name}`, icon: 'splitH', run: () => splitPane(null, 'h', null, pr) })),
     { label: 'Ingrandisci / ripristina pannello', icon: 'zoom', kbd: 'Ctrl+Shift+Z', run: toggleZoom },
+    { label: 'Nuovo pulsante di comando', icon: 'play', run: () => editQuickButton(null) },
+    { label: activeTab() && QB.syncTabs.has(activeTab().id) ? 'Digita solo nel pannello attivo' : 'Digita in tutti i pannelli della scheda', icon: 'splitH', kbd: 'Ctrl+Shift+A', run: toggleSyncInput },
+    { label: 'Invia un comando a tutti i pannelli…', icon: 'splitH', run: broadcastPrompt },
     { label: 'Sposta il pannello in una nuova scheda', icon: 'plus', run: () => p && movePaneToNewTab(p.id) },
     { label: 'Stacca il pannello in una nuova finestra', icon: 'external', run: () => p && detachPane(p.id) },
     { label: 'Scambia il pannello con quello a destra', icon: 'splitH', kbd: 'Ctrl+Alt+Shift+→', run: () => swapWithNeighbor('right') },
@@ -1096,6 +1097,7 @@ function showShortcuts() {
     ['Alt+Frecce', 'Sposta il focus tra i pannelli'],
     ['Ctrl+Alt+Frecce', 'Ridimensiona il pannello attivo'],
     ['Ctrl+Shift+Z', 'Ingrandisci/ripristina pannello (come tmux zoom)'],
+    ['Ctrl+Shift+A', 'Digita in tutti i pannelli della scheda'],
     ['Ctrl+Alt+Shift+Frecce', 'Scambia il pannello con quello vicino'],
     ['Trascina l’intestazione', 'Sposta, scambia, porta in un’altra scheda o fuori dalla finestra'],
     ['Ctrl+Shift+W', 'Chiudi pannello'],
@@ -1224,6 +1226,9 @@ function handleShortcut(e, pane) {
   const ctrl = e.ctrlKey, shift = e.shiftKey, alt = e.altKey;
   const code = e.code;
   const p = pane || focusedPane();
+  // tasti delle operazioni sui file quando la lista della barra laterale ha il focus
+  if (!pane && document.activeElement && document.activeElement.id === 'sb-list' &&
+      ((ctrl && ['KeyC', 'KeyX', 'KeyV', 'KeyA'].includes(code)) || k === 'Delete' || k === 'F2')) return false;
   const run = (fn) => { e.preventDefault(); e.stopPropagation(); fn(); return true; };
 
   // Copia / incolla in stile Windows
@@ -1235,6 +1240,7 @@ function handleShortcut(e, pane) {
     switch (code) {
       case 'KeyP': return run(openPalette);
       case 'KeyR': return run(openProjectActions);
+      case 'KeyA': return run(toggleSyncInput);
       case 'KeyN': return run(toggleNetView);
       case 'KeyT': return run(() => newTab());
       case 'KeyD': return run(() => splitPane(null, 'h'));
@@ -1321,6 +1327,7 @@ function setupHeaderbar() {
     const r = e.currentTarget.getBoundingClientRect();
     showMenu([
       { label: 'Palette comandi', icon: 'command', kbd: 'Ctrl+Shift+P', run: openPalette },
+      { label: 'Nuovo pulsante di comando', icon: 'play', run: () => editQuickButton(null) },
       { label: 'Salta a cartella', icon: 'jump', kbd: 'Ctrl+G', run: openJump },
       '-',
       { label: 'Mostra file nascosti', icon: 'eye', check: S.cfg.showHidden, run: toggleHidden },
@@ -1338,6 +1345,7 @@ function setupHeaderbar() {
     showMenu([
       { head: 'Nuova scheda' },
       ...S.profiles.map((pr) => ({ label: pr.name, icon: pr.icon, check: pr.id === defaultProfile().id, run: () => newTab(pr) })),
+      { label: 'Come amministratore', icon: 'shield', run: () => openAdminTerminal(focusedPane() ? focusedPane().cwd : S.info.home) },
       '-',
       { head: 'Dividi a destra' },
       ...S.profiles.map((pr) => ({ label: pr.name, icon: 'splitH', run: () => splitPane(null, 'h', null, pr) }))
@@ -1391,6 +1399,9 @@ async function init() {
   setupTabDrop();
   setupNetwork();
   setupTransfer();
+  setupFiles();
+  setupQuickbar();
+  window.yt.admin.info().then((i) => { S.isAdmin = !!i.isAdmin; if (S.isAdmin) document.body.classList.add('is-admin'); });
 
   try { await document.fonts.load(`${S.cfg.fontSize}px ${S.cfg.fontFamily}`); } catch {}
 

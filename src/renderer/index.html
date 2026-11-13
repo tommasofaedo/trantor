@@ -17,6 +17,7 @@
         <button class="hb-btn narrow" id="btn-profiles" title="Scegli shell"></button>
       </div>
       <div class="drag-spacer"></div>
+      <span class="admin-badge" title="Trantor è in esecuzione come amministratore">Amministratore</span>
       <button class="hb-btn" id="btn-split-h" title="Dividi a destra (Ctrl+Shift+D)"></button>
       <button class="hb-btn" id="btn-split-v" title="Dividi in basso (Ctrl+Shift+E)"></button>
  <button class="update-pill hidden" id="btn-update"></button>
@@ -71,7 +72,12 @@
             <ul id="sb-drives" class="chips"></ul>
           </section>
           <section class="sb-section" id="sec-content">
-            <h3><span>Contenuto</span><button class="icon-btn small" id="sb-hidden" title="Mostra file nascosti"></button></h3>
+            <h3><span>Contenuto</span><span class="h3-tools">
+              <button class="icon-btn small" id="sb-newdir" title="Nuova cartella"></button>
+              <button class="icon-btn small" id="sb-newfile" title="Nuovo file"></button>
+              <button class="icon-btn small" id="sb-paste" title="Incolla (Ctrl+V)"></button>
+              <button class="icon-btn small" id="sb-refresh" title="Aggiorna"></button>
+              <button class="icon-btn small" id="sb-hidden" title="Mostra file nascosti"></button></span></h3>
             <ul id="sb-list"></ul>
           </section>
         </div>
@@ -93,7 +99,10 @@
         </div>
       </aside>
       <div id="sidebar-resizer"></div>
-      <main id="workspace"></main>
+      <div id="main-col">
+        <div id="quickbar" class="hidden"></div>
+        <main id="workspace"></main>
+      </div>
     </div>
   </div>
 
@@ -146,6 +155,15 @@
     </div>
   </div>
 
+  <!-- Modulo generico (pulsanti di comando) -->
+  <div id="form-overlay" class="hidden">
+    <div id="form-dialog" role="dialog">
+      <div id="form-title" class="form-head"></div>
+      <div id="form-fields"></div>
+      <div class="form-actions"><span id="form-error"></span><button id="form-cancel" class="btn-plain">Annulla</button><button id="form-submit" class="btn-accent">OK</button></div>
+    </div>
+  </div>
+
   <div id="searchbar" class="hidden">
     <input id="search-input" type="text" spellcheck="false" placeholder="Cerca nel terminale" />
     <button class="icon-btn" id="search-prev" title="Precedente (Shift+Invio)"></button>
@@ -170,5 +188,7 @@
   <script src="panes.js"></script>
   <script src="network.js"></script>
   <script src="transfer.js"></script>
+  <script src="files.js"></script>
+  <script src="quickbar.js"></script>
 </body>
 </html>

@@ -308,7 +308,8 @@ function setupTransfer() {
     const li = e.target.closest('li[data-i]'); if (!li) return;
     const en = filteredEntries()[+li.dataset.i]; if (!en) return;
     const full = joinPath(S.sidebarDir, en.name);
-    e.dataTransfer.setData(PATH_TYPE, JSON.stringify([full]));
+    const paths = FS.picked.has(en.name) && FS.picked.size > 1 ? [...FS.picked].map((n) => joinPath(S.sidebarDir, n)) : [full];
+    e.dataTransfer.setData(PATH_TYPE, JSON.stringify(paths));
     e.dataTransfer.setData('text/plain', full);
     e.dataTransfer.effectAllowed = 'copy';
   });

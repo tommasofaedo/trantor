@@ -279,6 +279,10 @@ function buildSpawn(profile, cwd, enhance) {
       env.PROMPT_COMMAND = bashPromptCommand('$PWD', enhance);
       break;
   }
+  if (profile.elevate && isWin) {
+    const elevator = profile.elevate === 'gsudo' ? which('gsudo.exe') : path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'sudo.exe');
+    if (elevator && fs.existsSync(elevator)) return { file: elevator, args: [profile.exe, ...args], env };
+  }
   return { file: profile.exe, args, env };
 }
 
@@ -793,6 +797,76 @@ ipcMain.handle('dialog:chooseFiles', async (e) => {
   const r = await dialog.showOpenDialog(winOf(e), { title: 'File da caricare', properties: ['openFile', 'multiSelections'] });
   return r.canceled ? [] : r.filePaths;
 });
+// ---------------------------------------------------------------------------
+// IPC — operazioni sui file (barra laterale)
+// ---------------------------------------------------------------------------
+const fileops = require('./fileops');
+const wrap = (fn) => async (_e, ...a) => { try { return { ok: true, result: await fn(...a) }; } catch (err) { return { ok: false, error: err.message }; } };
+ipcMain.handle('files:mkdir', wrap((dir, name) => fileops.mkdir(dir, name)));
+ipcMain.handle('files:newFile', wrap((dir, name) => fileops.newFile(dir, name)));
+ipcMain.handle('files:rename', wrap((p, name) => fileops.rename(p, name)));
+ipcMain.handle('files:copy', wrap((srcs, dest) => fileops.copy(srcs, dest)));
+ipcMain.handle('files:move', wrap((srcs, dest) => fileops.move(srcs, dest)));
+ipcMain.handle('files:duplicate', wrap((p) => fileops.duplicate(p)));
+ipcMain.handle('files:zip', wrap(async (paths) => fileops.zip(paths, await fileops.zipName(paths))));
+ipcMain.handle('files:unzip', wrap((p) => fileops.unzip(p)));
+ipcMain.handle('files:trash', wrap(async (paths) => { for (const p of paths) await shell.trashItem(p); return paths.length; }));
+ipcMain.handle('files:readClipboard', () => fileops.readClipboardFiles());
+ipcMain.handle('files:writeClipboard', (_e, paths) => fileops.writeClipboardFiles(paths));
+
+// ---------------------------------------------------------------------------
+// IPC — amministratore
+// gsudo (anche Windows 10) o sudo di Windows 11 permettono una shell elevata dentro un pannello;
+// altrimenti si apre una finestra separata con la richiesta UAC di Windows.
+// ---------------------------------------------------------------------------
+let adminInfoCache = null;
+function psQuote(s) { return `'${String(s).replace(/'/g, "''")}'`; }
+function runElevated(filePath, argList, cwd) {
+  return new Promise((resolve) => {
+    const args = argList && argList.length ? ` -ArgumentList ${argList.map(psQuote).join(',')}` : '';
+    const wd = cwd ? ` -WorkingDirectory ${psQuote(cwd)}` : '';
+    const cmd = `try { Start-Process -FilePath ${psQuote(filePath)}${args}${wd} -Verb RunAs -ErrorAction Stop; 'ok' } catch { 'errore: ' + $_.Exception.Message }`;
+    execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', cmd], { windowsHide: true, timeout: 120000 }, (e, out) => {
+      const o = String(out || '').trim();
+      if (e || !o.startsWith('ok')) resolve({ ok: false, error: /cancel|annullat/i.test(o) ? 'Operazione annullata' : (o.replace(/^errore: /, '') || String(e && e.message)) });
+      else resolve({ ok: true });
+    });
+  });
+}
+ipcMain.handle('admin:info', async () => {
+  if (!isWin) return { windows: false, isAdmin: process.getuid ? process.getuid() === 0 : false, gsudo: null, sudo: null };
+  if (adminInfoCache) return adminInfoCache;
+  const isAdmin = await new Promise((r) => execFile('net', ['session'], { windowsHide: true }, (e) => r(!e)));
+  const gsudo = which('gsudo.exe');
+  const sudoPath = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'sudo.exe');
+  adminInfoCache = { windows: true, isAdmin, gsudo, sudo: fs.existsSync(sudoPath) ? sudoPath : null };
+  return adminInfoCache;
+});
+ipcMain.handle('admin:runFile', async (_e, p) => {
+  if (!isWin) return { ok: false, error: 'Disponibile solo su Windows' };
+  const ext = path.extname(p).toLowerCase();
+  const dir = path.dirname(p);
+  if (ext === '.ps1') return runElevated('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-NoExit', '-File', p], dir);
+  if (ext === '.msi') return runElevated('msiexec.exe', ['/i', p], dir);
+  return runElevated(p, null, dir);
+});
+ipcMain.handle('admin:externalShell', async (_e, dir, profile) => {
+  if (!isWin) return { ok: false, error: 'Disponibile solo su Windows' };
+  if (profile && profile.kind === 'cmd') return runElevated(profile.exe, ['/k', `cd /d "${dir}"`], dir);
+  const exe = profile && profile.kind === 'powershell' ? profile.exe : 'powershell.exe';
+  return runElevated(exe, ['-NoExit', '-Command', `Set-Location -LiteralPath ${psQuote(dir)}`], dir);
+});
+ipcMain.handle('admin:relaunch', async () => {
+  if (!isWin) return { ok: false, error: 'Disponibile solo su Windows' };
+  const exe = process.env.PORTABLE_EXECUTABLE_FILE || process.execPath;
+  const args = app.isPackaged ? [] : process.argv.slice(1);
+  app.releaseSingleInstanceLock();
+  const r = await runElevated(exe, args, path.dirname(exe));
+  if (r.ok) setTimeout(() => app.quit(), 300);
+  else app.requestSingleInstanceLock();
+  return r;
+});
+
 ipcMain.handle('fs:isDir', (_e, p) => { try { return fs.statSync(p).isDirectory(); } catch { return false; } });
 ipcMain.handle('fs:resolve', (_e, base, rel) => path.resolve(base, rel));
 ipcMain.handle('fs:parent', (_e, p) => path.dirname(p));

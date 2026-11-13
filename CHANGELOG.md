@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.6.0 — 2026-11-13
+
+- **File operations in the sidebar**: new folder, new file, copy / cut / paste (also with files copied in Explorer, and pasteable in Explorer), rename in place (F2), duplicate, compress to ZIP / extract, delete to the Recycle Bin with confirmation. Multiple selection with Ctrl+click and Shift+click, keyboard shortcuts on the list, drag onto a folder to move (Ctrl to copy). Toolbar buttons in the "Contenuto" header
+- **Command buttons**: a bar above the panes with your own buttons, global or for one project, running in the active pane, a new pane or all panes. Create them from the ☰ menu, the palette, or from "Usati qui" and project actions
+- **Type in all panes** of a tab (Ctrl+Shift+A, like tmux synchronize-panes) and "send a command to all panes"
+- **Administrator**: "Esegui come amministratore" for .exe/.bat/.cmd/.ps1/.msi, "Apri terminale come amministratore qui" (inside Trantor with gsudo or Windows 11 sudo in inline mode, otherwise in a separate elevated window), "Riavvia Trantor come amministratore". Elevated panes have a red outline
+
 ## 1.5.1 — 2026-11-13
 
 - Fixed the release build on GitHub's Windows runners (the 1.5.0 executables were never produced). Same features as 1.5.0
