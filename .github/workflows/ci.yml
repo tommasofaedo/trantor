@@ -17,7 +17,22 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm test
-      - name: Build (unpacked)
-        run: npm run dist:dir
+      - name: Build come per la release (installer + portable, senza pubblicare)
+        shell: bash
+        run: >
+          npx electron-builder --win nsis portable --x64 --publish never
+          "--config.extraMetadata.trantorRepo=${{ github.repository }}"
+          "--config.publish.provider=github"
+          "--config.publish.owner=${{ github.repository_owner }}"
+          "--config.publish.repo=${{ github.event.repository.name }}"
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
+      - name: File prodotti
+        shell: bash
+        run: |
+          ls -la dist
+          test -f dist/latest.yml
+          test -f dist/Trantor-Setup-x64.exe
+          test -f dist/Trantor-Portable-x64.exe
+          test -f dist/Trantor-Setup-x64.exe.blockmap
+          cat dist/latest.yml
