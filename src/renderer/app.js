@@ -703,6 +703,7 @@ function renderSidebarList() {
     `<li draggable="true" class="${e.isDir ? 'dir' : 'file'} ${e.hidden ? 'hidden-entry' : ''} ${i === S.sidebarSel ? 'sel' : ''} ${FS.picked.has(e.name) ? 'picked' : ''} ${FS.clip && FS.clip.mode === 'cut' && FS.clip.paths.includes(joinPath(S.sidebarDir, e.name)) ? 'cut' : ''}" data-i="${i}" title="${esc(e.name)}">${icon(e.isDir ? 'folder' : 'file')}<span class="lbl">${esc(e.name)}</span>${gitMark(e)}</li>`
   ).join('') + (list.length > max ? `<div class="sb-empty">…altri ${list.length - max} elementi</div>` : '');
   ul.querySelector('li.sel')?.scrollIntoView({ block: 'nearest' });
+  renderSelBar();
 }
 
 function renderBookmarks() {

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.1 — 2026-11-13
+
+- Selection bar under "Contenuto": when items are selected, buttons for copy, cut, rename, duplicate, zip/extract, delete and deselect appear
+
 ## 1.6.0 — 2026-11-13
 
 - **File operations in the sidebar**: new folder, new file, copy / cut / paste (also with files copied in Explorer, and pasteable in Explorer), rename in place (F2), duplicate, compress to ZIP / extract, delete to the Recycle Bin with confirmation. Multiple selection with Ctrl+click and Shift+click, keyboard shortcuts on the list, drag onto a folder to move (Ctrl to copy). Toolbar buttons in the "Contenuto" header

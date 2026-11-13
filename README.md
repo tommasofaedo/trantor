@@ -104,7 +104,7 @@ Scan only networks you manage or are authorized to test.
 The **Contenuto** list of the sidebar works like a small file manager:
 
 - toolbar: **new folder**, **new file**, **paste**, refresh, show hidden files;
-- select with click, **Ctrl+click** and **Shift+click**; right-click for **cut, copy, paste, rename, duplicate, compress to ZIP, extract, delete**;
+- select with click, **Ctrl+click** and **Shift+click**: a bar with **copy, cut, rename, duplicate, zip, delete** appears under the title; the same actions are in the right-click menu, together with paste and extract;
 - keyboard on the list: `Ctrl+C` / `Ctrl+X` / `Ctrl+V`, `F2` rename, `Del` delete, `Ctrl+A` select all;
 - drag items onto a folder to move them (`Ctrl` to copy); files dragged from Explorer are copied;
 - copy/paste works with Explorer too: files copied in Explorer can be pasted in Trantor and vice versa.

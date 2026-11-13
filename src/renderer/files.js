@@ -42,6 +42,25 @@ function onListClick(e) {
   else renderSidebarList();
 }
 
+// Barra delle azioni sugli elementi selezionati (sotto il titolo "Contenuto")
+function renderSelBar() {
+  const bar = $('#sb-selbar');
+  if (!bar) return;
+  const names = filteredEntries().filter((e) => FS.picked.has(e.name));
+  bar.classList.toggle('hidden', !names.length || !!FS.renaming);
+  if (!names.length) return;
+  const one = names.length === 1;
+  const zipOne = one && /\.zip$/i.test(names[0].name);
+  bar.innerHTML = `<span class="sel-count" title="${esc(names.map((e) => e.name).join('\n'))}">${one ? esc(names[0].name) : `${names.length} selezionati`}</span>` +
+    `<button data-act="copy" title="Copia (Ctrl+C)">${icon('copy')}</button>` +
+    `<button data-act="cut" title="Taglia (Ctrl+X)">${icon('cut')}</button>` +
+    (one ? `<button data-act="rename" title="Rinomina (F2)">${icon('edit')}</button>` : '') +
+    `<button data-act="duplicate" title="Duplica">${icon('filePlus')}</button>` +
+    `<button data-act="${zipOne ? 'unzip' : 'zip'}" title="${zipOne ? 'Estrai qui' : 'Comprimi in ZIP'}">${icon('box')}</button>` +
+    `<button data-act="trash" class="danger" title="Elimina (Canc)">${icon('trash')}</button>` +
+    `<button data-act="clear" title="Deseleziona (Esc)">${icon('close')}</button>`;
+}
+
 // -------------------------------------------------------------------------
 // Operazioni
 // -------------------------------------------------------------------------
@@ -154,6 +173,7 @@ function startRename(name) {
     } else renderSidebarList();
     $('#sb-list').focus({ preventScroll: true });
   };
+  renderSelBar();
   input.addEventListener('keydown', (e) => {
     e.stopPropagation();
     if (e.key === 'Enter') { e.preventDefault(); finish(true); }
@@ -293,6 +313,12 @@ function setupFiles() {
   $('#sb-newdir').innerHTML = icon('folderPlus'); $('#sb-newdir').onclick = newFolder;
   $('#sb-newfile').innerHTML = icon('filePlus'); $('#sb-newfile').onclick = newFile;
   $('#sb-paste').innerHTML = icon('paste'); $('#sb-paste').onclick = () => pasteInto();
+  $('#sb-selbar').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    const act = { copy: () => copySel('copy'), cut: () => copySel('cut'), rename: renameSel, duplicate: duplicateSel, zip: zipSel, unzip: unzipSel, trash: trashSel,
+      clear: () => { resetPicked(); renderSidebarList(); } }[b.dataset.act];
+    if (act) act();
+  });
   $('#sb-refresh').innerHTML = icon('refresh'); $('#sb-refresh').onclick = () => { loadSidebarList(); refreshProject(true); };
 
   const target = (e) => e.target.closest('#sb-list li.dir');

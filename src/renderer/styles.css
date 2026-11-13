@@ -462,3 +462,12 @@ body.is-admin .admin-badge { display: inline-flex; }
 #form-error { flex: 1; color: #FF7A71; font-size: 12px; }
 .btn-plain { height: 30px; padding: 0 14px; border: 0; border-radius: var(--radius); background: var(--btn); color: var(--fg); }
 .btn-plain:hover { background: var(--btn-hover); }
+
+/* Barra delle azioni sugli elementi selezionati */
+#sb-selbar { display: flex; align-items: center; gap: 1px; margin: 2px 8px 4px; padding: 3px 3px 3px 10px; border-radius: 8px; background: #233950; }
+#sb-selbar.hidden { display: none; }
+#sb-selbar .sel-count { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 600; color: #fff; }
+#sb-selbar button { width: 26px; height: 26px; border: 0; border-radius: 6px; background: transparent; display: grid; place-items: center; color: #9CCBFF; flex: none; }
+#sb-selbar button:hover { background: rgba(255,255,255,.12); color: #fff; }
+#sb-selbar button.danger:hover { background: #4b282c; color: #FF7A71; }
+#sb-selbar button .ico { width: 14px; height: 14px; }

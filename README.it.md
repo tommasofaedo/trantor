@@ -104,7 +104,7 @@ Usa la scansione solo su reti che gestisci o per cui hai l'autorizzazione.
 La lista **Contenuto** della barra laterale funziona come un piccolo gestore di file:
 
 - pulsanti: **nuova cartella**, **nuovo file**, **incolla**, aggiorna, mostra file nascosti;
-- selezione con clic, **Ctrl+clic** e **Shift+clic**; tasto destro per **taglia, copia, incolla, rinomina, duplica, comprimi in ZIP, estrai, elimina**;
+- selezione con clic, **Ctrl+clic** e **Shift+clic**: sotto il titolo compare una barra con **copia, taglia, rinomina, duplica, zip, elimina**; le stesse azioni, più incolla ed estrai, sono nel menu del tasto destro;
 - da tastiera sulla lista: `Ctrl+C` / `Ctrl+X` / `Ctrl+V`, `F2` rinomina, `Canc` elimina, `Ctrl+A` seleziona tutto;
 - trascina gli elementi su una cartella per spostarli (`Ctrl` per copiarli); i file trascinati da Esplora file vengono copiati;
 - copia e incolla funzionano anche con Esplora file: i file copiati lì si incollano in Trantor e viceversa.
