@@ -112,6 +112,21 @@ async function t(name, fn) {
   });
   server.close();
 
+  // Seriale: conversione dei byte esadecimali
+  const serial = require('../src/serial.js');
+  await t('seriale: byte esadecimali', async () => {
+    assert.deepStrictEqual([...serial.parseHex('01 03 00 0A')], [1, 3, 0, 10]);
+    assert.deepStrictEqual([...serial.parseHex('0x01,0xFF')], [1, 255]);
+    assert.throws(() => serial.parseHex('01 0'), /dispari/);
+    assert.throws(() => serial.parseHex('zz'), /esadecimali/);
+    assert.strictEqual(serial.describe({ path: 'COM5', baudRate: 19200, dataBits: 8, parity: 'even', stopBits: 1 }), 'COM5 · 19200 8E1');
+  });
+  await t('seriale: elenco porte', async () => {
+    const l = await serial.list();
+    assert.ok(Array.isArray(l));
+    console.log('   porte:', l.map((x) => `${x.path}${x.name ? ' (' + x.name + ')' : ''}`).join(', ') || 'nessuna');
+  });
+
   // OPC UA: formattazione dei valori e connessione rifiutata
   const ua = require('../src/opcua.js');
   const { Variant, DataType, VariantArrayType } = require('node-opcua-variant');

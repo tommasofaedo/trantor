@@ -1,7 +1,7 @@
 {
   "name": "trantor",
   "productName": "Trantor",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "description": "Trantor — a modern Windows terminal with tmux-style split panes, fast folder navigation and a Yaru Dark look",
   "main": "src/main.js",
   "author": "Trantor contributors",
@@ -41,7 +41,8 @@
     "@xterm/xterm": "^5.5.0",
     "electron-updater": "^6.8.11",
     "node-opcua-client": "2.187.27",
-    "oui-data": "^2.1.58"
+    "oui-data": "^2.1.58",
+    "serialport": "13.0.0"
   },
   "devDependencies": {
     "electron": "^38.0.0",
@@ -59,10 +60,12 @@
       "src/**/*",
       "build/icon.png",
       "package.json",
-      "!**/*.map"
+      "!**/*.map",
+      "!node_modules/@serialport/bindings-cpp/prebuilds/{android-*,darwin-*,linux-arm,linux-arm64,win32-arm64,win32-ia32}/**"
     ],
     "asarUnpack": [
-      "node_modules/@lydell/**/*"
+      "node_modules/@lydell/**/*",
+      "node_modules/@serialport/bindings-cpp/prebuilds/win32-x64/**/*"
     ],
     "win": {
       "icon": "build/icon.ico",
@@ -82,6 +85,7 @@
     },
     "portable": {
       "artifactName": "${productName}-Portable-${arch}.${ext}"
-    }
+    },
+    "npmRebuild": false
   }
 }

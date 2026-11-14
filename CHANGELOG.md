@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.8.0 — 2026-11-14
+
+- **Serial ports, PuTTY style** (`Ctrl+Shift+M` or + ▾ → Connessione seriale…): ports listed with their names, speed, 8N1 and the other line settings, flow control, Enter key terminator, local echo; saved sessions; last settings remembered per port
+- A serial port opens as a pane, with port, settings and state in the header and buttons for hex view (packets with time, TX/RX and ASCII), timestamps, sending bytes in hex and recording to a file
+- Automatic reconnection when the USB adapter is unplugged and plugged back in; clear message when the port is busy
+
 ## 1.7.0 — 2026-11-14
 
 - **Browse OPC UA tags**: in the network view, a device with an OPC UA server now has "Esplora tag OPC UA". It opens the node tree (loaded one level at a time, so large servers stay fast) with data type and live value of every variable, updated through a subscription. Copy NodeId or value. Read only; anonymous connections without encryption for now

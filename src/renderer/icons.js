@@ -47,6 +47,7 @@ const ICON_PATHS = {
   camera: '<rect x="2" y="4.5" width="9" height="7" rx="1.5"/><path d="m11 7 3-2v6l-3-2"/>',
   printer: '<path d="M4.5 6V2.5h7V6"/><rect x="2" y="6" width="12" height="5.5" rx="1.5"/><path d="M4.5 9.5h7v4h-7z"/>',
   dot: '<circle cx="8" cy="8" r="2.5"/>',
+  plug: '<path d="M5.5 2v3M10.5 2v3"/><path d="M3.5 5h9v2.5a4.5 4.5 0 0 1-9 0z"/><path d="M8 12v2.5"/>',
   tag: '<path d="M2.5 2.5h5l6 6-5 5-6-6z"/><circle cx="5.5" cy="5.5" r="1"/>',
   globe: '<circle cx="8" cy="8" r="5.5"/><path d="M2.5 8h11M8 2.5c1.6 1.6 2.4 3.4 2.4 5.5S9.6 11.9 8 13.5C6.4 11.9 5.6 10.1 5.6 8S6.4 4.1 8 2.5z"/>',
   pulse: '<path d="M2 8.5h2.5l1.5-4 3 8 1.5-4H14"/>',

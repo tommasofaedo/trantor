@@ -132,12 +132,13 @@ async function runCommandIn(pane, dir, cmd, mode = 'here') {
     return;
   }
   if (mode === 'tab') {
-    const tab = await newTab(pane ? pane.profile : null, dir);
+    const tab = await newTab(pane && !isSerial(pane) ? pane.profile : null, dir);
     const np = tab && S.panes.get(tab.focused);
     if (np) window.yt.write(np.id, cmd + '\r');
     return;
   }
   if (!pane) return;
+  if (isSerial(pane)) return runCommandIn(pane, dir, cmd, 'tab');
   if (dir && !samePath(pane.cwd, dir)) window.yt.write(pane.id, cdCommand(pane.profile.kind, dir));
   window.yt.write(pane.id, cmd + '\r');
   pane.term.focus();
@@ -478,7 +479,7 @@ function saveLayout() {
     if (n.type === 'split') return { type: 'split', dir: n.dir, ratio: n.ratio, a: ser(n.a), b: ser(n.b) };
     const p = S.panes.get(n.id);
     const inside = dirKey(p.cwd) === dirKey(root) || dirKey(p.cwd).startsWith(dirKey(root) + sep());
-    return { type: 'pane', profile: p.profile.id, rel: inside ? p.cwd.slice(root.length).replace(/^[\\/]/, '') : null, abs: inside ? null : p.cwd, cmd: p.running || null };
+    return { type: 'pane', profile: p.profile.id, rel: inside ? p.cwd.slice(root.length).replace(/^[\\/]/, '') : null, abs: inside ? null : p.cwd, cmd: p.running || null, serial: isSerial(p) ? p.profile.serial : undefined };
   };
   const tree = ser(tab.root);
   LAYOUTS.data[dirKey(root)] = { root, name: pr.name, saved: Date.now(), tree };
@@ -493,7 +494,7 @@ function openLayout(lay) {
   const root = lay.root;
   const res = (n) => n.type === 'split'
     ? { type: 'split', dir: n.dir, ratio: n.ratio, a: res(n.a), b: res(n.b) }
-    : { type: 'pane', profile: n.profile, cwd: n.abs || (n.rel ? joinPath(root, n.rel) : root), cmd: n.cmd };
+    : { type: 'pane', profile: n.profile, cwd: n.abs || (n.rel ? joinPath(root, n.rel) : root), cmd: n.cmd, serial: n.serial };
   return newTab(null, null, res(lay.tree));
 }
 

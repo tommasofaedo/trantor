@@ -159,6 +159,7 @@ class Pane {
 
     // Trascina una cartella da Esplora file → cd
     this.el.addEventListener('dragover', (e) => {
+      if (isSerial(this)) return;
       const t = e.dataTransfer.types;
       if (!(t.includes('Files') || t.includes(PATH_TYPE) || t.includes(REMOTE_TYPE))) return;
       e.preventDefault();
@@ -217,6 +218,7 @@ class Pane {
     this.ro = new ResizeObserver(debounce(() => this.doFit(), 30));
     this.renderPath();
     setupPaneDrag(this);
+    if (isSerial(this)) setupSerialPane(this);
   }
 
   async start(adopt) {
@@ -261,6 +263,7 @@ class Pane {
   }
 
   renderPath() {
+    if (isSerial(this)) { if (this.serialState) renderSerialHeader(this); return; }
     const crumbs = splitCrumbs(this.cwd);
     const home = S.info.home;
     let html = '';
@@ -278,6 +281,7 @@ class Pane {
   }
 
   cd(p) {
+    if (isSerial(this)) { newTab(defaultProfile(), p); return; }
     if (!this.alive) return;
     window.yt.write(this.id, cdCommand(this.profile.kind, p));
     this.setCwd(p);
@@ -320,12 +324,13 @@ async function newTab(profile, cwd, tree) {
   const created = [];
   const build = (n) => {
     if (n.type === 'split') return { type: 'split', dir: n.dir, ratio: n.ratio || 0.5, a: build(n.a), b: build(n.b) };
-    const p = new Pane(profileById(n.profile), n.cwd);
+    const p = new Pane(n.serial ? serialProfile(n.serial) : profileById(n.profile), n.cwd);
     p.startCmd = n.cmd || null;
     S.panes.set(p.id, p); created.push(p);
     return { type: 'pane', id: p.id };
   };
-  tab.root = build(tree || { type: 'pane', profile: (profile || defaultProfile()).id, cwd: cwd || (focusedPane() && focusedPane().cwd) || S.info.home });
+  const prof = profile || defaultProfile();
+  tab.root = build(tree || { type: 'pane', profile: prof.id, serial: prof.kind === 'serial' ? prof.serial : undefined, cwd: cwd || (focusedPane() && focusedPane().cwd) || S.info.home });
   tab.focused = panesOf(tab.root)[0];
   activateTab(tab.id);
   for (const p of created) {
@@ -418,7 +423,7 @@ async function splitPane(pid, dir, cwd, profile) {
   pid = pid || tab.focused;
   const src = S.panes.get(pid);
   const hit = findNode(tab.root, pid);
-  const p = new Pane(profile || src.profile, cwd || src.cwd);
+  const p = new Pane(profile || (isSerial(src) ? defaultProfile() : src.profile), cwd || src.cwd);
   S.panes.set(p.id, p);
   const newSplit = { type: 'split', dir, ratio: 0.5, a: { type: 'pane', id: pid }, b: { type: 'pane', id: p.id } };
   if (!hit.parent) tab.root = newSplit;
@@ -523,7 +528,7 @@ function renderTabs() {
     el.className = 'tab' + (t.id === S.activeTab ? ' active' : '');
     el.draggable = true;
     el.title = fp ? `${fp.profile.name} — ${fp.cwd}` : '';
-    el.innerHTML = `${icon(fp ? fp.profile.icon : 'terminal')}<span class="tab-title">${esc(fp ? (baseName(fp.cwd) || fp.title) : 'Terminale')}</span>` +
+    el.innerHTML = `${icon(fp ? fp.profile.icon : 'terminal')}<span class="tab-title">${esc(fp ? (isSerial(fp) ? fp.profile.serial.path : (baseName(fp.cwd) || fp.title)) : 'Terminale')}</span>` +
       (n > 1 ? `<span class="tab-badge" title="${n} pannelli">${t.zoomed ? '⤢ ' : ''}${n}</span>` : '') +
       `<button class="tab-close" title="Chiudi scheda (Ctrl+Shift+Q)">${icon('close')}</button>`;
     el.addEventListener('mousedown', (e) => { if (e.button === 1) { e.preventDefault(); closeTab(t.id); } });
@@ -584,7 +589,7 @@ const saveCfgSoon = debounce(() => window.yt.saveConfig({ history: S.cfg.history
 // =========================================================================
 function serializeSession() {
   const ser = (n) => n.type === 'pane'
-    ? { type: 'pane', profile: S.panes.get(n.id).profile.id, cwd: S.panes.get(n.id).cwd }
+    ? { type: 'pane', profile: S.panes.get(n.id).profile.id, cwd: S.panes.get(n.id).cwd, serial: isSerial(S.panes.get(n.id)) ? S.panes.get(n.id).profile.serial : undefined }
     : { type: 'split', dir: n.dir, ratio: n.ratio, a: ser(n.a), b: ser(n.b) };
   return { tabs: S.tabs.map((t) => ser(t.root)), active: S.tabs.findIndex((t) => t.id === S.activeTab) };
 }
@@ -751,7 +756,7 @@ function clearSidebarFilter() { $('#sb-filter').value = ''; S.sidebarSel = -1; r
 function openDir(dir, mode = 'cd') {
   const p = focusedPane();
   if (mode === 'tab' && layoutFor(dir)) return openLayout(layoutFor(dir));
-  if (mode === 'tab' || !p) return newTab(p ? p.profile : null, dir);
+  if (mode === 'tab' || !p) return newTab(p && !isSerial(p) ? p.profile : null, dir);
   if (mode === 'h' || mode === 'v') return splitPane(p.id, mode, dir);
   S.browsing = false;
   p.cd(dir);
@@ -1023,6 +1028,7 @@ function commands() {
     ...(S.project && layoutFor(S.project.root) ? [{ label: `Apri la disposizione di ${S.project.name}`, icon: 'splitH', run: () => openLayout(layoutFor(S.project.root)) }] : []),
     { label: `Attiva da solo l’ambiente Python: ${S.cfg.autoVenv ? 'attivo' : 'disattivo'}`, icon: 'python', run: toggleAutoVenv },
     { label: 'Nuova scheda', icon: 'plus', kbd: 'Ctrl+Shift+T', run: () => newTab() },
+    { label: 'Connessione seriale (COM)…', icon: 'plug', kbd: 'Ctrl+Shift+M', run: openSerialDialog },
     ...S.profiles.map((pr) => ({ label: `Nuova scheda: ${pr.name}`, icon: pr.icon, run: () => newTab(pr) })),
     { label: 'Nuova scheda come amministratore', icon: 'shield', run: () => openAdminTerminal(p ? p.cwd : S.info.home) },
     { label: 'Riavvia Trantor come amministratore', icon: 'shield', run: relaunchAsAdmin },
@@ -1089,6 +1095,7 @@ function showShortcuts() {
     ['Ctrl+H', 'Comandi usati in questa cartella'],
     ['Ctrl+Shift+R', 'Azioni del progetto (npm, docker, make…)'],
     ['Ctrl+Shift+N', 'Dispositivi in rete'],
+    ['Ctrl+Shift+M', 'Connessione seriale (COM)'],
     ['Alt+Su', 'Vai alla cartella superiore'],
     ['Clic / doppio clic', 'Lista dei file: seleziona / apri la cartella o il file'],
     ['▶ in «Contenuto»', 'Apri nel terminale la cartella selezionata o quella mostrata'],
@@ -1171,6 +1178,7 @@ document.addEventListener('mousedown', (e) => { if (!e.target.closest('#menu')) 
 function paneMenu(p, x, y) {
   const hasSel = p.term.hasSelection();
   showMenu([
+    ...serialMenuItems(p),
     ...remoteMenuItems(p),
     { label: hasSel ? 'Copia' : 'Copia (nessuna selezione)', icon: 'copy', kbd: 'Ctrl+C', run: () => { if (hasSel) { window.yt.writeClipboard(p.term.getSelection()); p.term.clearSelection(); } } },
     { label: 'Incolla', icon: 'paste', kbd: 'Ctrl+V', run: async () => { p.term.paste(await window.yt.readClipboard()); p.term.focus(); } },
@@ -1243,6 +1251,7 @@ function handleShortcut(e, pane) {
       case 'KeyA': return run(toggleSyncInput);
       case 'KeyO': return run(openBrowse);
       case 'KeyN': return run(toggleNetView);
+      case 'KeyM': return run(openSerialDialog);
       case 'KeyT': return run(() => newTab());
       case 'KeyD': return run(() => splitPane(null, 'h'));
       case 'KeyE': return run(() => splitPane(null, 'v'));
@@ -1348,6 +1357,7 @@ function setupHeaderbar() {
       { head: 'Nuova scheda' },
       ...S.profiles.map((pr) => ({ label: pr.name, icon: pr.icon, check: pr.id === defaultProfile().id, run: () => newTab(pr) })),
       { label: 'Come amministratore', icon: 'shield', run: () => openAdminTerminal(focusedPane() ? focusedPane().cwd : S.info.home) },
+      { label: 'Connessione seriale…', icon: 'plug', kbd: 'Ctrl+Shift+M', run: openSerialDialog },
       '-',
       { head: 'Dividi a destra' },
       ...S.profiles.map((pr) => ({ label: pr.name, icon: 'splitH', run: () => splitPane(null, 'h', null, pr) }))

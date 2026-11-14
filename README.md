@@ -36,7 +36,7 @@ Windows 10 and 11, 64-bit. Nothing else to install. Older versions and release n
 - **Session restore**: tabs, splits and folders come back when you reopen the app.
 - **Shells detected automatically**: PowerShell 7, Windows PowerShell, Command Prompt, Git Bash, WSL.
 - **Explorer integration**: "Open in Trantor" context-menu entry, drag a folder onto a pane to `cd` into it.
-- **Network devices**: finds PLCs, panels, routers and servers on the local network, recognizes Modbus, S7, EtherNet/IP, OPC UA, SSH and web interfaces, reads Modbus registers and browses **OPC UA tags with live values** (read only).
+- **Network devices**: finds PLCs, panels, routers and servers on the local network, recognizes Modbus, S7, EtherNet/IP, OPC UA, SSH and web interfaces, opens **serial ports PuTTY-style** (hex view, timestamps, auto-reconnect), reads Modbus registers and browses **OPC UA tags with live values** (read only).
 - **Files and command buttons**: copy, cut, paste, rename, zip and delete from the sidebar (also with Explorer), your own buttons for frequent commands, typing in all panes at once, administrator terminals.
 - **File transfers over SSH**: drag files onto a remote pane to upload them, drag a file name out of it to download.
 - **Rearrange panes**: drag panes to move, swap, send them to another tab or detach them into a new window without stopping the shell.
@@ -58,6 +58,7 @@ Windows 10 and 11, 64-bit. Nothing else to install. Older versions and release n
 | `Ctrl+Shift+R` | Project actions |
 | `Ctrl+Shift+O` | Browse folders (full tree) |
 | `Ctrl+Shift+N` | Network devices |
+| `Ctrl+Shift+M` | Serial connection (COM) |
 | `Ctrl+Shift+A` | Type in all panes of the tab |
 | `Ctrl+Alt+Shift+Arrows` | Swap the active pane with its neighbour |
 | `Alt+Up` | Parent folder (moves focus up when there are several panes) |
@@ -101,6 +102,18 @@ Click a device for details and actions: SSH (choose the user), open the web inte
 Scan only networks you manage or are authorized to test.
 
 <br clear="right">
+
+## Serial ports (PuTTY style)
+
+`Ctrl+Shift+M`, or **+ ▾ → Connessione seriale…**: a PuTTY-like window with the available ports and their names (e.g. *COM5 · USB-SERIAL CH340*), speed, data bits, parity, stop bits, flow control, what Enter sends (CR, LF, CR+LF), local echo, hex view and timestamps. Save configurations as **sessions** and open them with a double click; the last settings of every port are remembered.
+
+The port opens as a normal pane: split it next to a shell, move it, detach it. The pane header shows port, settings (`115200 8N1`) and state, with buttons for:
+- **HEX** view: received bytes grouped into packets (a pause of 30 ms starts a new line), with time, TX/RX and ASCII column; ideal for binary protocols;
+- time on every line;
+- **send bytes in hex** (`01 03 00 00 00 0A C5 CD`);
+- **record** received data to a file.
+
+If the USB adapter is unplugged, Trantor waits and reconnects by itself when it comes back. If the port is busy (another program has it open) it says so and retries.
 
 ## Files
 
@@ -261,6 +274,7 @@ src/
     updates.js         update button
   netscan.js           network scan, service recognition, Modbus TCP
   opcua.js             OPC UA browser (read only)
+  serial.js            serial ports
   fileops.js           copy, move, rename, zip, Windows file clipboard
 scripts/
   ensure-electron.js   fallback Electron download

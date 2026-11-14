@@ -13,7 +13,7 @@ Funzioni principali:
 - **Schede e pannelli divisi** stile tmux, ma usabili anche col mouse (pulsanti su ogni pannello, divisori trascinabili, doppio clic sul divisore = 50/50)
 - **Barra laterale cartelle** che segue il pannello attivo e permette di esplorare liberamente senza spostare il terminale: preferiti, recenti, unità, contenuto della cartella con filtro
 - **Salta a cartella** (`Ctrl+G`): ricerca fuzzy su preferiti, cartelle recenti (frecency, come `z`/`zoxide`), sottocartelle e unità
-- **Dispositivi in rete**: trova PLC, pannelli, router e server nella rete locale, riconosce Modbus, S7, EtherNet/IP, OPC UA, SSH e interfacce web, legge i registri Modbus ed esplora i **tag OPC UA con i valori in tempo reale** (solo lettura)
+- **Dispositivi in rete**: trova PLC, pannelli, router e server nella rete locale, riconosce Modbus, S7, EtherNet/IP, OPC UA, SSH e interfacce web, apre le **porte seriali in stile PuTTY** (vista esadecimale, ora, riconnessione automatica), legge i registri Modbus ed esplora i **tag OPC UA con i valori in tempo reale** (solo lettura)
 - **File e pulsanti di comando**: copia, taglia, incolla, rinomina, zip ed elimina dalla barra laterale (anche con Esplora file), pulsanti per i comandi frequenti, digitazione in tutti i pannelli, terminali da amministratore
 - **Trasferire file via SSH**: trascina i file su un pannello remoto per caricarli, trascina fuori il nome di un file per scaricarlo
 - **Riorganizzare i pannelli**: trascina i pannelli per spostarli, scambiarli, portarli in un'altra scheda o staccarli in una nuova finestra senza fermare la shell
@@ -55,6 +55,7 @@ Se mancano, l'app ripiega su Segoe UI e Cascadia Mono / Consolas.
 | `Ctrl+Shift+R` | Azioni del progetto |
 | `Ctrl+Shift+O` | Sfoglia cartelle (albero completo) |
 | `Ctrl+Shift+N` | Dispositivi in rete |
+| `Ctrl+Shift+M` | Connessione seriale (COM) |
 | `Ctrl+Shift+A` | Digita in tutti i pannelli della scheda |
 | `Ctrl+Alt+Shift+frecce` | Scambia il pannello attivo con quello vicino |
 | `Alt+Su` | Cartella superiore (con più pannelli: sposta il focus in su) |
@@ -101,6 +102,18 @@ Clic su un dispositivo per dettagli e azioni: SSH (scegliendo l'utente), interfa
 Usa la scansione solo su reti che gestisci o per cui hai l'autorizzazione.
 
 <br clear="right">
+
+## Porte seriali (stile PuTTY)
+
+`Ctrl+Shift+M`, oppure **+ ▾ → Connessione seriale…**: una finestra come quella di PuTTY con le porte disponibili e il loro nome (es. *COM5 · USB-SERIAL CH340*), velocità, bit di dati, parità, bit di stop, controllo di flusso, cosa manda il tasto Invio (CR, LF, CR+LF), eco locale, vista esadecimale e ora su ogni riga. Le configurazioni si salvano come **sessioni** e si aprono con un doppio clic; le ultime impostazioni di ogni porta vengono ricordate.
+
+La porta si apre come un normale pannello: lo affianchi a una shell, lo sposti, lo stacchi in un'altra finestra. L'intestazione mostra porta, impostazioni (`115200 8N1`) e stato, con i pulsanti per:
+- vista **HEX**: i byte ricevuti raggruppati in pacchetti (una pausa di 30 ms manda a capo), con ora, TX/RX e colonna ASCII; ideale per i protocolli binari;
+- ora su ogni riga;
+- **invio di byte in esadecimale** (`01 03 00 00 00 0A C5 CD`);
+- **registrazione** su file dei dati ricevuti.
+
+Se scolleghi il convertitore USB, Trantor aspetta e si ricollega da solo quando lo rimetti. Se la porta è occupata da un altro programma lo dice e riprova.
 
 ## File
 
@@ -262,6 +275,7 @@ src/
     updates.js       pulsante di aggiornamento
   netscan.js         scansione di rete, riconoscimento servizi, Modbus TCP
   opcua.js           esploratore OPC UA (sola lettura)
+  serial.js          porte seriali
   fileops.js         copia, sposta, rinomina, zip, appunti dei file di Windows
 ```
 

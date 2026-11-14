@@ -452,6 +452,17 @@ function ptySend(entry, channel, ...args) {
 }
 
 ipcMain.handle('pty:spawn', async (e, { id, profile, cwd, cols, rows, enhance }) => {
+  if (profile && profile.kind === 'serial') {
+    // porta seriale: si comporta come una shell per il pannello
+    const proc = serialMod.create(profile.serial, {
+      log,
+      onState: (st) => { const en = ptys.get(id); if (en) ptySend(en, 'serial:state', id, st); },
+    });
+    const entry = { proc, kind: 'serial', ownerId: e.sender.id, queue: null };
+    ptys.set(id, entry);
+    proc.onData((data) => ptySend(entry, 'pty:data', id, data));
+    return { pid: 0 };
+  }
   let startDir = cwd;
   if (!(await isDirAsync(startDir))) { if (startDir) log('[avvio shell] cartella non raggiungibile, uso la home:', startDir); startDir = os.homedir(); }
   const { file, args, env } = buildSpawn(profile, startDir, enhance !== false);
@@ -521,6 +532,25 @@ ipcMain.handle('net:scan', async (e, range) => {
 });
 ipcMain.handle('net:cancel', () => netscan.cancel());
 ipcMain.handle('net:modbus', (_e, opts) => netscan.modbusRead(opts));
+
+// --- Porte seriali (stile PuTTY)
+const serialMod = require('./serial');
+const serialOf = (id) => { const en = ptys.get(id); return en && en.kind === 'serial' ? en.proc : null; };
+ipcMain.handle('serial:list', () => serialMod.list());
+ipcMain.handle('serial:set', (_e, id, opts) => { const p = serialOf(id); if (p) p.set(opts); });
+ipcMain.handle('serial:sendHex', (_e, id, text) => {
+  const p = serialOf(id); if (!p) return { ok: false, error: 'Porta non aperta' };
+  try { return { ok: p.sendHex(text) }; } catch (err) { return { ok: false, error: err.message }; }
+});
+ipcMain.handle('serial:log', async (e, id, start) => {
+  const p = serialOf(id); if (!p) return false;
+  if (!start) { p.setLog(null); return true; }
+  const name = `${String(p.cfg.path).replace(/[^\w.-]+/g, '_')}-${new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-')}.log`;
+  const r = await dialog.showSaveDialog(winOf(e), { title: 'Registra i dati ricevuti', defaultPath: path.join(app.getPath('documents'), name), filters: [{ name: 'Registro', extensions: ['log', 'txt', 'bin'] }] });
+  if (r.canceled || !r.filePath) return false;
+  p.setLog(r.filePath);
+  return true;
+});
 
 // --- OPC UA: esplorazione dei nodi e valori in tempo reale (sola lettura, connessione anonima)
 const opcua = require('./opcua');
