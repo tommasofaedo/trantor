@@ -1,7 +1,7 @@
 {
   "name": "trantor",
   "productName": "Trantor",
-  "version": "1.6.4",
+  "version": "1.7.0",
   "description": "Trantor — a modern Windows terminal with tmux-style split panes, fast folder navigation and a Yaru Dark look",
   "main": "src/main.js",
   "author": "Trantor contributors",
@@ -40,6 +40,7 @@
     "@xterm/addon-webgl": "^0.18.0",
     "@xterm/xterm": "^5.5.0",
     "electron-updater": "^6.8.11",
+    "node-opcua-client": "2.187.27",
     "oui-data": "^2.1.58"
   },
   "devDependencies": {

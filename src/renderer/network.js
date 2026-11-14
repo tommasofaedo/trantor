@@ -81,6 +81,7 @@ function devActions(d) {
   const mb = svc(d, 'modbus')[0];
   if (mb) a.push({ label: 'Leggi registri Modbus', icon: 'cpu', run: () => openModbus(d.ip, mb.port, (mb.ident && mb.ident.unit !== 255 && mb.ident.unit) || 1) });
   const ua = svc(d, 'opcua')[0];
+  if (ua) a.push({ label: 'Esplora tag OPC UA', icon: 'tree', run: () => openOpcua(d.ip, ua.port, devTitle(d)) });
   if (ua) a.push({ label: 'Copia endpoint OPC UA', icon: 'copy', run: () => { window.yt.writeClipboard(`opc.tcp://${d.ip}:${ua.port}`); toast('Endpoint copiato'); } });
   if (svc(d, 'rdp').length && isWin()) a.push({ label: 'Desktop remoto', icon: 'monitor', run: () => window.yt.netRdp(d.ip) });
   if (svc(d, 'telnet').length) a.push({ label: 'Telnet', icon: 'terminal', run: () => runInNewPane(`telnet ${d.ip}`, 'v') });

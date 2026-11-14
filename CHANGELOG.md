@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.7.0 — 2026-11-14
+
+- **Browse OPC UA tags**: in the network view, a device with an OPC UA server now has "Esplora tag OPC UA". It opens the node tree (loaded one level at a time, so large servers stay fast) with data type and live value of every variable, updated through a subscription. Copy NodeId or value. Read only; anonymous connections without encryption for now
+- Clear messages when the server requires a login or encryption, refuses the connection or doesn't answer
+
 ## 1.6.4 — 2026-11-13
 
 - Fix: the app could crash or freeze at startup with a VPN active. Network drives, network folders in PATH and an unreachable last folder are now checked asynchronously with a short timeout instead of blocking the app

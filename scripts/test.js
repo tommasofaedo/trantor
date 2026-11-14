@@ -112,6 +112,19 @@ async function t(name, fn) {
   });
   server.close();
 
+  // OPC UA: formattazione dei valori e connessione rifiutata
+  const ua = require('../src/opcua.js');
+  const { Variant, DataType, VariantArrayType } = require('node-opcua-variant');
+  await t('OPC UA: valori leggibili', async () => {
+    assert.deepStrictEqual(ua.fmtValue(new Variant({ dataType: DataType.Boolean, value: true })), { text: 'TRUE', type: 'Boolean' });
+    assert.strictEqual(ua.fmtValue(new Variant({ dataType: DataType.Float, value: 22.5 })).text, '22.5');
+    assert.deepStrictEqual(ua.fmtValue(new Variant({ dataType: DataType.Int16, arrayType: VariantArrayType.Array, value: new Int16Array([1, 2, 3]) })), { text: '[1, 2, 3]', type: 'Int16[3]' });
+  });
+  await t('OPC UA: porta chiusa', async () => {
+    const os = require('os'); const path = require('path');
+    await assert.rejects(ua.connect({ ip: '127.0.0.1', port: 4999, dataDir: path.join(os.tmpdir(), 'trantor-ua-test') }), /rifiutata/);
+  });
+
   console.log(failed ? `\n${failed} test falliti` : '\nTutti i test superati');
   process.exit(failed ? 1 : 0);
 })();

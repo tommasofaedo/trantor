@@ -36,7 +36,7 @@ Windows 10 and 11, 64-bit. Nothing else to install. Older versions and release n
 - **Session restore**: tabs, splits and folders come back when you reopen the app.
 - **Shells detected automatically**: PowerShell 7, Windows PowerShell, Command Prompt, Git Bash, WSL.
 - **Explorer integration**: "Open in Trantor" context-menu entry, drag a folder onto a pane to `cd` into it.
-- **Network devices**: finds PLCs, panels, routers and servers on the local network, recognizes Modbus, S7, EtherNet/IP, OPC UA, SSH and web interfaces, and reads Modbus registers (read only).
+- **Network devices**: finds PLCs, panels, routers and servers on the local network, recognizes Modbus, S7, EtherNet/IP, OPC UA, SSH and web interfaces, reads Modbus registers and browses **OPC UA tags with live values** (read only).
 - **Files and command buttons**: copy, cut, paste, rename, zip and delete from the sidebar (also with Explorer), your own buttons for frequent commands, typing in all panes at once, administrator terminals.
 - **File transfers over SSH**: drag files onto a remote pane to upload them, drag a file name out of it to download.
 - **Rearrange panes**: drag panes to move, swap, send them to another tab or detach them into a new window without stopping the shell.
@@ -94,7 +94,9 @@ Open the **Rete** tab of the sidebar (`Ctrl+Shift+N`), check the network range a
 - recognizes services with read-only requests: SSH banner, web page title, **Modbus TCP** device identification (vendor, product, version), **EtherNet/IP** product name, **OPC UA** and **Siemens S7** handshakes, MQTT, IEC 104, DNP3, Beckhoff ADS, RDP, VNC, printers and cameras;
 - groups devices as automation, network, computers, printers, cameras.
 
-Click a device for details and actions: SSH (choose the user), open the web interface, continuous ping in a new pane, remote desktop, copy IP / MAC / OPC UA endpoint, and **Read Modbus registers**: holding/input registers, coils, discrete inputs, shown as unsigned, signed, hex, binary or float32, optionally refreshed every second with changed values highlighted. Trantor never writes to devices.
+Click a device for details and actions: SSH (choose the user), open the web interface, continuous ping in a new pane, remote desktop, copy IP / MAC / OPC UA endpoint, and **Read Modbus registers**: holding/input registers, coils, discrete inputs, shown as unsigned, signed, hex, binary or float32, optionally refreshed every second with changed values highlighted.
+
+**Browse OPC UA tags**: the server's node tree (folders, objects, variables) loaded one level at a time, with data type and value of every variable updated live through a subscription; copy the NodeId (e.g. `ns=3;s="DB_Data"."Temperature"`) or the value. Anonymous connections without encryption for now. Trantor never writes to devices.
 
 Scan only networks you manage or are authorized to test.
 
@@ -258,6 +260,7 @@ src/
     quickbar.js        command buttons, typing in all panes
     updates.js         update button
   netscan.js           network scan, service recognition, Modbus TCP
+  opcua.js             OPC UA browser (read only)
   fileops.js           copy, move, rename, zip, Windows file clipboard
 scripts/
   ensure-electron.js   fallback Electron download

@@ -160,6 +160,15 @@
   </div>
 
   <!-- Sfoglia cartelle: albero completo -->
+  <div id="ua-overlay" class="hidden">
+    <div id="ua-dialog" role="dialog" aria-label="Tag OPC UA">
+      <div class="br-head"><b>Tag OPC UA</b><span id="ua-target" class="mono"></span><span id="ua-state"></span></div>
+      <div class="ua-cols"><span>Nome</span><span>Tipo</span><span>Valore</span></div>
+      <div id="ua-tree" tabindex="0"></div>
+      <div class="ua-sel"><span id="ua-nodeid" class="mono"></span></div>
+      <div class="br-actions"><span class="br-hint">Sola lettura · doppio clic per espandere · i valori si aggiornano da soli</span><button id="ua-copyval" class="btn-plain">Copia valore</button><button id="ua-copyid" class="btn-plain">Copia NodeId</button><button id="ua-close" class="btn-accent">Chiudi</button></div>
+    </div>
+  </div>
   <div id="br-overlay" class="hidden">
     <div id="br-dialog" role="dialog" aria-label="Sfoglia cartelle">
       <div class="br-head"><b>Sfoglia cartelle</b><span id="br-path" class="mono"></span></div>
@@ -204,5 +213,6 @@
   <script src="files.js"></script>
   <script src="quickbar.js"></script>
   <script src="browse.js"></script>
+  <script src="opcua.js"></script>
 </body>
 </html>

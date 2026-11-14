@@ -521,6 +521,18 @@ ipcMain.handle('net:scan', async (e, range) => {
 });
 ipcMain.handle('net:cancel', () => netscan.cancel());
 ipcMain.handle('net:modbus', (_e, opts) => netscan.modbusRead(opts));
+
+// --- OPC UA: esplorazione dei nodi e valori in tempo reale (sola lettura, connessione anonima)
+const opcua = require('./opcua');
+const uaResult = (fn) => fn().then((data) => ({ ok: true, data }), (err) => { log('[OPC UA]', err); return { ok: false, error: String(err.message || err) }; });
+ipcMain.handle('ua:connect', (_e, { ip, port }) => uaResult(() => opcua.connect({ ip, port, dataDir: app.getPath('userData') })));
+ipcMain.handle('ua:browse', (_e, key, nodeId) => uaResult(() => opcua.browse(key, nodeId)));
+ipcMain.handle('ua:watch', (e, key, nodeIds) => {
+  const wc = e.sender;
+  return uaResult(() => opcua.watch(key, nodeIds, (v) => { if (!wc.isDestroyed()) wc.send('ua:values', key, v); }));
+});
+ipcMain.handle('ua:disconnect', (_e, key) => opcua.disconnect(key));
+app.on('will-quit', () => { opcua.disconnectAll(); });
 ipcMain.handle('net:rdp', (_e, ip) => {
   if (!isWin || !/^(\d{1,3}\.){3}\d{1,3}$/.test(ip)) return false;
   require('child_process').spawn('mstsc', [`/v:${ip}`], { detached: true, stdio: 'ignore' }).unref();

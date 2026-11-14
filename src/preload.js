@@ -27,6 +27,13 @@ contextBridge.exposeInMainWorld('yt', {
   netCancel: () => ipcRenderer.invoke('net:cancel'),
   netModbus: (opts) => ipcRenderer.invoke('net:modbus', opts),
   netRdp: (ip) => ipcRenderer.invoke('net:rdp', ip),
+  ua: {
+    connect: (ip, port) => ipcRenderer.invoke('ua:connect', { ip, port }),
+    browse: (key, nodeId) => ipcRenderer.invoke('ua:browse', key, nodeId),
+    watch: (key, nodeIds) => ipcRenderer.invoke('ua:watch', key, nodeIds),
+    disconnect: (key) => ipcRenderer.invoke('ua:disconnect', key),
+    onValues: (cb) => ipcRenderer.on('ua:values', (_e, key, v) => cb(key, v)),
+  },
   onNetProgress: (cb) => ipcRenderer.on('net:progress', (_e, p) => cb(p)),
   onNetDevice: (cb) => ipcRenderer.on('net:device', (_e, d) => cb(d)),
 

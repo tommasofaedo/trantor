@@ -13,7 +13,7 @@ Funzioni principali:
 - **Schede e pannelli divisi** stile tmux, ma usabili anche col mouse (pulsanti su ogni pannello, divisori trascinabili, doppio clic sul divisore = 50/50)
 - **Barra laterale cartelle** che segue il pannello attivo e permette di esplorare liberamente senza spostare il terminale: preferiti, recenti, unità, contenuto della cartella con filtro
 - **Salta a cartella** (`Ctrl+G`): ricerca fuzzy su preferiti, cartelle recenti (frecency, come `z`/`zoxide`), sottocartelle e unità
-- **Dispositivi in rete**: trova PLC, pannelli, router e server nella rete locale, riconosce Modbus, S7, EtherNet/IP, OPC UA, SSH e interfacce web, e legge i registri Modbus (solo lettura)
+- **Dispositivi in rete**: trova PLC, pannelli, router e server nella rete locale, riconosce Modbus, S7, EtherNet/IP, OPC UA, SSH e interfacce web, legge i registri Modbus ed esplora i **tag OPC UA con i valori in tempo reale** (solo lettura)
 - **File e pulsanti di comando**: copia, taglia, incolla, rinomina, zip ed elimina dalla barra laterale (anche con Esplora file), pulsanti per i comandi frequenti, digitazione in tutti i pannelli, terminali da amministratore
 - **Trasferire file via SSH**: trascina i file su un pannello remoto per caricarli, trascina fuori il nome di un file per scaricarlo
 - **Riorganizzare i pannelli**: trascina i pannelli per spostarli, scambiarli, portarli in un'altra scheda o staccarli in una nuova finestra senza fermare la shell
@@ -94,7 +94,9 @@ Apri la scheda **Rete** della barra laterale (`Ctrl+Shift+N`), controlla l'inter
 - riconosce i servizi con richieste di sola lettura: versione SSH, titolo della pagina web, identificazione **Modbus TCP** (produttore, prodotto, versione), nome del prodotto **EtherNet/IP**, risposta **OPC UA** e **Siemens S7**, MQTT, IEC 104, DNP3, Beckhoff ADS, RDP, VNC, stampanti e telecamere;
 - raggruppa i dispositivi in automazione, rete, computer, stampanti, telecamere.
 
-Clic su un dispositivo per dettagli e azioni: SSH (scegliendo l'utente), interfaccia web, ping continuo in un nuovo pannello, desktop remoto, copia IP / MAC / endpoint OPC UA, e **Leggi registri Modbus**: holding e input register, coil, ingressi discreti, visualizzati senza segno, con segno, esadecimali, binari o float32, con aggiornamento ogni secondo e i valori cambiati evidenziati. Trantor non scrive mai sui dispositivi.
+Clic su un dispositivo per dettagli e azioni: SSH (scegliendo l'utente), interfaccia web, ping continuo in un nuovo pannello, desktop remoto, copia IP / MAC / endpoint OPC UA, e **Leggi registri Modbus**: holding e input register, coil, ingressi discreti, visualizzati senza segno, con segno, esadecimali, binari o float32, con aggiornamento ogni secondo e i valori cambiati evidenziati. 
+
+**Esplora tag OPC UA**: l'albero dei nodi del server (cartelle, oggetti, variabili) caricato un livello alla volta, con tipo e valore di ogni variabile aggiornati in tempo reale tramite sottoscrizione; copia del NodeId (es. `ns=3;s="DB_Dati"."Temperatura"`) o del valore. Per ora connessioni anonime senza cifratura. Trantor non scrive mai sui dispositivi.
 
 Usa la scansione solo su reti che gestisci o per cui hai l'autorizzazione.
 
@@ -259,6 +261,7 @@ src/
     quickbar.js      pulsanti di comando, digitazione in tutti i pannelli
     updates.js       pulsante di aggiornamento
   netscan.js         scansione di rete, riconoscimento servizi, Modbus TCP
+  opcua.js           esploratore OPC UA (sola lettura)
   fileops.js         copia, sposta, rinomina, zip, appunti dei file di Windows
 ```
 
